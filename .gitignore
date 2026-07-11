@@ -35,12 +35,11 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+# dotenv
+# 내부 파일은 무시하고 .env.example만 추적
+# (.env/ 자체를 ignore하면 ! 예외가 동작하지 않음)
+.env/*
+!.env/.env.example
 
 # temp directory
 .temp
