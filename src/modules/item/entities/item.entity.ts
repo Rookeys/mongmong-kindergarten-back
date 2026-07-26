@@ -1,0 +1,35 @@
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { ItemType } from '../enums/item-type.enum';
+
+/**
+ * 아이템 엔티티 (ITEM)
+ */
+@Entity('item')
+export class Item {
+  @PrimaryGeneratedColumn({ type: 'bigint', name: 'item_id' })
+  id!: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  name!: string;
+
+  @Column({ name: 'item_type', type: 'varchar', length: 20 })
+  itemType!: ItemType;
+
+  @Column({ name: 'image_url', type: 'varchar', length: 500 })
+  imageUrl!: string;
+
+  @Column({ type: 'int', default: 0 })
+  cost!: number;
+
+  @CreateDateColumn({ name: 'created_date' })
+  createdDate!: Date;
+
+  @UpdateDateColumn({ name: 'updated_date' })
+  updatedDate!: Date;
+}
