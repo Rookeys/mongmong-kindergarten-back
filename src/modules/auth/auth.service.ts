@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -7,35 +6,29 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { DataSource, Repository } from 'typeorm';
-import { LocaleType } from '../../common/enums/locale-type.enum';
+import { Repository } from 'typeorm';
+import { GetUserResponseDto } from '../user/dto/get/get-user-response.dto';
+import { CreateUserRequestDto } from '../user/dto/post/create-user-request.dto';
 import { User } from '../user/entities/user.entity';
-import { UserSetting } from '../user/entities/user-setting.entity';
 import { LoginType } from '../user/enums/login-type.enum';
 import { UserStatus } from '../user/enums/user-status.enum';
-import { createInviteCode } from '../user/utils/create-invite-code.util';
 import { UserService } from '../user/user.service';
-import { BCRYPT_SALT_ROUNDS } from './constants/password.constants';
 import { JWT_ACCESS_EXPIRES_IN_SECONDS } from './constants/token.constants';
+import { AuthTokenResponseDto } from './dto/auth-token-response.dto';
+import { JwtPayloadDto } from './dto/jwt-payload.dto';
 import { KakaoAuthService } from './services/kakao-auth.service';
-import type {
-  AuthTokenResponse,
-  JwtPayload,
-  LoginUser,
-} from './types/login-user.type';
 import type { KakaoUserProfile } from './types/kakao-user-profile.type';
-import type { UserWithoutPassword } from './types/user-without-password.type';
+
+type LoginUser = Pick<GetUserResponseDto, 'id' | 'email'>;
 
 /**
  * 로컬/카카오 인증 및 토큰 발급 서비스
- * ERD User 모델(email/password/loginType) 기준으로 동작한다.
  */
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly kakaoAuthService: KakaoAuthService,
@@ -48,7 +41,7 @@ export class AuthService {
   async validateUser(
     email: string,
     password: string,
-  ): Promise<UserWithoutPassword | null> {
+  ): Promise<GetUserResponseDto | null> {
     const user = await this.userRepository.findOneBy({ email });
     if (!user?.password) {
       return null;
@@ -63,91 +56,36 @@ export class AuthService {
     if (!isPasswordValid) {
       return null;
     }
-    return this.userService.mapUserToPublic(user);
+    return this.userService.mapUserToResponse(user);
   }
 
   /**
    * 검증된 사용자에게 Access Token을 발급한다.
    */
-  async login(user: UserWithoutPassword): Promise<AuthTokenResponse> {
+  async login(user: GetUserResponseDto): Promise<AuthTokenResponseDto> {
     await this.touchLastLoginDate(user.id);
-    return this.createAuthTokenResponse(user);
+    const latestUser = await this.userService.findOne(user.id);
+    return this.createAuthTokenResponse(latestUser);
   }
 
   /**
    * 로컬 회원가입을 처리한다.
    */
-  async register(input: {
-    email: string;
-    password: string;
-    nickname: string;
-    friendInviteCode?: string;
-  }): Promise<UserWithoutPassword> {
-    await this.ensureEmailIsAvailable(input.email);
-    const hashedPassword = await bcrypt.hash(input.password, BCRYPT_SALT_ROUNDS);
-    const savedUser = await this.dataSource.transaction(async (manager) => {
-      const user = await manager.save(
-        User,
-        this.buildLocalUserPayload(input, hashedPassword),
-      );
-      await manager.save(UserSetting, this.buildDefaultUserSetting(user));
-      return user;
-    });
-    return this.userService.mapUserToPublic(savedUser);
+  async register(dto: CreateUserRequestDto): Promise<GetUserResponseDto> {
+    return this.userService.create(dto);
   }
 
   /**
    * 카카오 Access Token으로 로그인(또는 가입)한다.
    */
-  async loginWithKakao(kakaoAccessToken: string): Promise<AuthTokenResponse> {
+  async loginWithKakao(kakaoAccessToken: string): Promise<AuthTokenResponseDto> {
     const kakaoUserProfile =
       await this.kakaoAuthService.fetchUserProfile(kakaoAccessToken);
     const user = await this.findOrCreateKakaoUser(kakaoUserProfile);
     await this.touchLastLoginDate(user.id);
-    return this.createAuthTokenResponse(this.userService.mapUserToPublic(user));
-  }
-
-  private async ensureEmailIsAvailable(email: string): Promise<void> {
-    const existingUser = await this.userRepository.findOneBy({ email });
-    if (existingUser) {
-      throw new BadRequestException('이미 존재하는 이메일입니다.');
-    }
-  }
-
-  private buildLocalUserPayload(
-    input: {
-      email: string;
-      nickname: string;
-      friendInviteCode?: string;
-    },
-    hashedPassword: string,
-  ): Partial<User> {
-    return {
-      email: input.email,
-      password: hashedPassword,
-      nickname: input.nickname,
-      loginType: LoginType.LOCAL,
-      providerId: null,
-      rewardCount: 0,
-      aiReplyCycle: 0,
-      myInviteCode: createInviteCode(),
-      friendInviteCode: input.friendInviteCode ?? null,
-      status: UserStatus.ACTIVE,
-      deletedRequestAt: null,
-      lastLoginDate: null,
-      questionSeriesId: null,
-      currentQuestionId: null,
-    };
-  }
-
-  private buildDefaultUserSetting(user: User): Partial<UserSetting> {
-    return {
-      user,
-      localeType: LocaleType.KO,
-      setLetterIsPrivate: false,
-      setLetterIsPrivateSns: false,
-      pushEnabled: true,
-    };
+    return this.createAuthTokenResponse(
+      this.userService.mapUserToResponse(user),
+    );
   }
 
   private async findOrCreateKakaoUser(
@@ -172,26 +110,11 @@ export class AuthService {
     const nickname =
       this.kakaoAuthService.extractNickname(kakaoUserProfile) ??
       `카카오유저${providerId}`;
-    await this.ensureEmailIsAvailable(email);
-    return this.dataSource.transaction(async (manager) => {
-      const user = await manager.save(User, {
-        email,
-        password: null,
-        nickname,
-        loginType: LoginType.KAKAO,
-        providerId,
-        rewardCount: 0,
-        aiReplyCycle: 0,
-        myInviteCode: createInviteCode(),
-        friendInviteCode: null,
-        status: UserStatus.ACTIVE,
-        deletedRequestAt: null,
-        lastLoginDate: null,
-        questionSeriesId: null,
-        currentQuestionId: null,
-      });
-      await manager.save(UserSetting, this.buildDefaultUserSetting(user));
-      return user;
+    return this.userService.createSocialUser({
+      email,
+      nickname,
+      loginType: LoginType.KAKAO,
+      providerId,
     });
   }
 
@@ -229,8 +152,8 @@ export class AuthService {
   }
 
   private createAuthTokenResponse(
-    user: UserWithoutPassword,
-  ): AuthTokenResponse {
+    user: GetUserResponseDto,
+  ): AuthTokenResponseDto {
     const loginUser: LoginUser = { id: user.id, email: user.email };
     return {
       accessToken: this.createAccessToken(loginUser),
@@ -239,7 +162,7 @@ export class AuthService {
   }
 
   private createAccessToken(user: LoginUser): string {
-    const payload: JwtPayload = { email: user.email, sub: user.id };
+    const payload: JwtPayloadDto = { email: user.email, sub: user.id };
     return this.jwtService.sign(payload, {
       secret: this.getJwtSecret(),
       expiresIn: JWT_ACCESS_EXPIRES_IN_SECONDS,

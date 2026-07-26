@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-local';
+import { GetUserResponseDto } from '../../user/dto/get/get-user-response.dto';
 import { AuthService } from '../auth.service';
-import type { UserWithoutPassword } from '../types/user-without-password.type';
 
 /**
  * 로컬 로그인 Passport 전략 (email/password)
@@ -19,7 +19,7 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   async validate(
     email: string,
     password: string,
-  ): Promise<UserWithoutPassword> {
+  ): Promise<GetUserResponseDto> {
     const user = await this.authService.validateUser(email, password);
     if (!user) {
       throw new UnauthorizedException(

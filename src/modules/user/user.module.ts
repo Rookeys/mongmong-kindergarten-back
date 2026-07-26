@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from '../auth/auth.module';
 import { User } from './entities/user.entity';
 import { UserBlock } from './entities/user-block.entity';
 import { UserDevice } from './entities/user-device.entity';
@@ -20,6 +21,7 @@ import { UserService } from './user.service';
       UserInvite,
       UserBlock,
     ]),
+    forwardRef(() => AuthModule),
   ],
   controllers: [UserController],
   providers: [UserService],

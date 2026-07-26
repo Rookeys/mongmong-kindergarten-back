@@ -7,28 +7,41 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { GetUserResponseDto } from '../user/dto/get/get-user-response.dto';
+import { UpdateUserRequestDto } from '../user/dto/patch/update-user-request.dto';
 import { UserService } from '../user/user.service';
-import { UpdateUserProfileDto } from '../user/dto/update-user-profile.dto';
 import { AuthService } from './auth.service';
-import { KakaoLoginDto } from './dto/kakao-login.dto';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { AuthTokenResponseDto } from './dto/auth-token-response.dto';
+import { JwtPayloadDto } from './dto/jwt-payload.dto';
+import { KakaoLoginRequestDto } from './dto/kakao-login-request.dto';
+import { LoginRequestDto } from './dto/login-request.dto';
+import { RegisterRequestDto } from './dto/register-request.dto';
+import { RegisterResponseDto } from './dto/register-response.dto';
 import { JwtGuard } from './guard/jwt.guard';
 import { LocalGuard } from './guard/local.guard';
-import type { AuthTokenResponse, JwtPayload } from './types/login-user.type';
-import type { UserWithoutPassword } from './types/user-without-password.type';
 
 type LocalAuthRequest = {
-  user: UserWithoutPassword;
+  user: GetUserResponseDto;
 };
 
 type JwtAuthRequest = {
-  user: JwtPayload;
+  user: JwtPayloadDto;
 };
 
 /**
  * 인증 및 내 프로필 API 컨트롤러
  */
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -41,10 +54,14 @@ export class AuthController {
    */
   @Post('login')
   @UseGuards(LocalGuard)
+  @ApiOperation({ summary: '로컬 로그인' })
+  @ApiBody({ type: LoginRequestDto })
+  @ApiOkResponse({ description: '로그인 성공', type: AuthTokenResponseDto })
+  @ApiUnauthorizedResponse({ description: '인증 실패' })
   async login(
-    @Body() _loginDto: LoginDto,
+    @Body() _loginDto: LoginRequestDto,
     @Req() request: LocalAuthRequest,
-  ): Promise<AuthTokenResponse> {
+  ): Promise<AuthTokenResponseDto> {
     return this.authService.login(request.user);
   }
 
@@ -52,20 +69,33 @@ export class AuthController {
    * 로컬 회원가입
    */
   @Post('register')
-  async register(@Body() dto: RegisterDto): Promise<UserWithoutPassword> {
-    return this.authService.register({
-      email: dto.email,
-      password: dto.password,
-      nickname: dto.nickname,
-      friendInviteCode: dto.friendInviteCode,
-    });
+  @ApiOperation({ summary: '로컬 회원가입' })
+  @ApiBody({ type: RegisterRequestDto })
+  @ApiCreatedResponse({
+    description: '회원가입 성공',
+    type: RegisterResponseDto,
+  })
+  @ApiBadRequestResponse({ description: '유효성 검사 실패 또는 이메일 중복' })
+  async register(
+    @Body() dto: RegisterRequestDto,
+  ): Promise<RegisterResponseDto> {
+    return this.authService.register(dto);
   }
 
   /**
-   * 카카오 로그인 (프론트에서 받은 kakaoAccessToken 사용)
+   * 카카오 로그인
    */
   @Post('kakao')
-  async kakaoLogin(@Body() dto: KakaoLoginDto): Promise<AuthTokenResponse> {
+  @ApiOperation({
+    summary: '카카오 로그인',
+    description: '프론트에서 받은 kakaoAccessToken으로 로그인/가입합니다.',
+  })
+  @ApiBody({ type: KakaoLoginRequestDto })
+  @ApiOkResponse({ description: '로그인 성공', type: AuthTokenResponseDto })
+  @ApiUnauthorizedResponse({ description: '카카오 토큰이 유효하지 않음' })
+  async kakaoLogin(
+    @Body() dto: KakaoLoginRequestDto,
+  ): Promise<AuthTokenResponseDto> {
     return this.authService.loginWithKakao(dto.kakaoAccessToken);
   }
 
@@ -74,8 +104,12 @@ export class AuthController {
    */
   @Get('me')
   @UseGuards(JwtGuard)
-  async getMe(@Req() request: JwtAuthRequest): Promise<UserWithoutPassword> {
-    return this.userService.findPublicById(request.user.sub);
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 프로필 조회' })
+  @ApiOkResponse({ description: '조회 성공', type: GetUserResponseDto })
+  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  async getMe(@Req() request: JwtAuthRequest): Promise<GetUserResponseDto> {
+    return this.userService.findOne(request.user.sub);
   }
 
   /**
@@ -83,10 +117,15 @@ export class AuthController {
    */
   @Patch('me')
   @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 프로필 수정' })
+  @ApiBody({ type: UpdateUserRequestDto })
+  @ApiOkResponse({ description: '수정 성공', type: GetUserResponseDto })
+  @ApiUnauthorizedResponse({ description: '인증 실패' })
   async updateMe(
     @Req() request: JwtAuthRequest,
-    @Body() dto: UpdateUserProfileDto,
-  ): Promise<UserWithoutPassword> {
-    return this.userService.updateProfile(request.user.sub, dto);
+    @Body() dto: UpdateUserRequestDto,
+  ): Promise<GetUserResponseDto> {
+    return this.userService.update(request.user.sub, dto);
   }
 }

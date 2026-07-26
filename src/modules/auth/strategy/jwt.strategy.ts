@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { JwtPayload } from '../types/login-user.type';
+import { JwtPayloadDto } from '../dto/jwt-payload.dto';
 
 /**
  * JWT Bearer 토큰 Passport 전략
@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   /**
    * 토큰 payload를 request.user에 그대로 전달한다.
    */
-  validate(payload: JwtPayload): JwtPayload {
+  validate(payload: JwtPayloadDto): JwtPayloadDto {
     return payload;
   }
 
