@@ -11,9 +11,16 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
 
+  const corsOrigin = process.env.CORS_ORIGIN;
+  const corsMethods = process.env.CORS_METHODS;
+  if (!corsOrigin || !corsMethods) {
+    throw new Error(
+      'CORS_ORIGIN, CORS_METHODS 환경변수가 설정되지 않았습니다.',
+    );
+  }
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') ?? [],
-    methods: process.env.CORS_METHODS?.split(',') ?? [],
+    origin: corsOrigin.split(','),
+    methods: corsMethods.split(','),
     credentials: true,
   });
 
