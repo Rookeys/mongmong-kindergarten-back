@@ -9,6 +9,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './guard/jwt.guard';
 import { LocalGuard } from './guard/local.guard';
+import { RolesGuard } from './guard/roles.guard';
 import { KakaoAuthService } from './services/kakao-auth.service';
 import { JwtStrategy } from './strategy/jwt.strategy';
 import { LocalStrategy } from './strategy/local.strategy';
@@ -32,7 +33,8 @@ import { LocalStrategy } from './strategy/local.strategy';
     JwtStrategy,
     LocalGuard,
     JwtGuard,
+    RolesGuard,
   ],
-  exports: [AuthService, JwtGuard, JwtStrategy],
+  exports: [AuthService, JwtGuard, JwtStrategy, RolesGuard],
 })
 export class AuthModule {}

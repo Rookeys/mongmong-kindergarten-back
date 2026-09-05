@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,7 +16,7 @@ import { JwtPayloadDto } from './dto/jwt-payload.dto';
 import { KakaoAuthService } from './services/kakao-auth.service';
 import type { KakaoUserProfile } from './types/kakao-user-profile.type';
 
-type LoginUser = Pick<GetUserResponseDto, 'id' | 'email'>;
+type LoginUser = Pick<GetUserResponseDto, 'id' | 'email' | 'role'>;
 
 /**
  * 로컬/카카오 인증 및 토큰 발급 서비스
@@ -78,7 +75,9 @@ export class AuthService {
   /**
    * 카카오 Access Token으로 로그인(또는 가입)한다.
    */
-  async loginWithKakao(kakaoAccessToken: string): Promise<AuthTokenResponseDto> {
+  async loginWithKakao(
+    kakaoAccessToken: string,
+  ): Promise<AuthTokenResponseDto> {
     const kakaoUserProfile =
       await this.kakaoAuthService.fetchUserProfile(kakaoAccessToken);
     const user = await this.findOrCreateKakaoUser(kakaoUserProfile);
@@ -154,7 +153,11 @@ export class AuthService {
   private createAuthTokenResponse(
     user: GetUserResponseDto,
   ): AuthTokenResponseDto {
-    const loginUser: LoginUser = { id: user.id, email: user.email };
+    const loginUser: LoginUser = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
     return {
       accessToken: this.createAccessToken(loginUser),
       user,
@@ -162,7 +165,11 @@ export class AuthService {
   }
 
   private createAccessToken(user: LoginUser): string {
-    const payload: JwtPayloadDto = { email: user.email, sub: user.id };
+    const payload: JwtPayloadDto = {
+      email: user.email,
+      sub: user.id,
+      role: user.role,
+    };
     return this.jwtService.sign(payload, {
       secret: this.getJwtSecret(),
       expiresIn: JWT_ACCESS_EXPIRES_IN_SECONDS,

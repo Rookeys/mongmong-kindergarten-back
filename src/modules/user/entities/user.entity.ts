@@ -20,6 +20,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { LoginType } from '../enums/login-type.enum';
+import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
 import { UserBlock } from './user-block.entity';
 import { UserDevice } from './user-device.entity';
@@ -81,6 +82,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 20 })
   status!: UserStatus;
+
+  @Column({ type: 'varchar', length: 20, default: UserRole.USER })
+  role!: UserRole;
 
   @Column({ name: 'deleted_request_at', type: 'timestamp', nullable: true })
   deletedRequestAt!: Date | null;

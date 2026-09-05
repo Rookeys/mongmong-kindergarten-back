@@ -18,6 +18,7 @@ import {
 import { User } from './entities/user.entity';
 import { UserSetting } from './entities/user-setting.entity';
 import { LoginType } from './enums/login-type.enum';
+import { UserRole } from './enums/user-role.enum';
 import { UserStatus } from './enums/user-status.enum';
 import { createInviteCode } from './utils/create-invite-code.util';
 
@@ -101,6 +102,7 @@ export class UserService {
         myInviteCode: createInviteCode(),
         friendInviteCode: null,
         status: UserStatus.ACTIVE,
+        role: UserRole.USER,
         deletedRequestAt: null,
         lastLoginDate: null,
         questionSeriesId: null,
@@ -154,6 +156,7 @@ export class UserService {
       myInviteCode: user.myInviteCode,
       friendInviteCode: user.friendInviteCode,
       status: user.status,
+      role: user.role,
       lastLoginDate: user.lastLoginDate,
       currentQuestionId: user.currentQuestionId,
       questionSeriesId: user.questionSeriesId,
@@ -185,6 +188,7 @@ export class UserService {
       myInviteCode: createInviteCode(),
       friendInviteCode: dto.friendInviteCode ?? null,
       status: UserStatus.ACTIVE,
+      role: UserRole.USER,
       deletedRequestAt: null,
       lastLoginDate: null,
       questionSeriesId: null,

@@ -21,7 +21,10 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtGuard } from '../auth/guard/jwt.guard';
+import { RolesGuard } from '../auth/guard/roles.guard';
+import { UserRole } from './enums/user-role.enum';
 import {
   CreateUserRequestDto,
   CreateUserResponseDto,
@@ -35,11 +38,13 @@ import {
 import { UserService } from './user.service';
 
 /**
- * 사용자 CRUD API 컨트롤러
+ * 사용자 CRUD API 컨트롤러 (관리자 전용)
+ * 본인 프로필 조회/수정은 AuthController의 /auth/me 사용.
  */
 @ApiTags('users')
 @ApiBearerAuth()
-@UseGuards(JwtGuard)
+@UseGuards(JwtGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}

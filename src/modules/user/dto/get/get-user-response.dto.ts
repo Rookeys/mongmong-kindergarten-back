@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { LoginType } from '../../enums/login-type.enum';
+import { UserRole } from '../../enums/user-role.enum';
 import { UserStatus } from '../../enums/user-status.enum';
 
 /**
@@ -52,6 +53,13 @@ export class GetUserResponseDto {
     example: UserStatus.ACTIVE,
   })
   status!: UserStatus;
+
+  @ApiProperty({
+    description: '권한',
+    enum: UserRole,
+    example: UserRole.USER,
+  })
+  role!: UserRole;
 
   @ApiPropertyOptional({
     description: '마지막 로그인 일시',
