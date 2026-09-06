@@ -16,10 +16,7 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   /**
    * email/password를 검증하고 공개 사용자 정보를 반환한다.
    */
-  async validate(
-    email: string,
-    password: string,
-  ): Promise<GetUserResponseDto> {
+  async validate(email: string, password: string): Promise<GetUserResponseDto> {
     const user = await this.authService.validateUser(email, password);
     if (!user) {
       throw new UnauthorizedException(

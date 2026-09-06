@@ -8,6 +8,7 @@ import * as bcrypt from 'bcryptjs';
 import { DataSource, Repository } from 'typeorm';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import { BCRYPT_SALT_ROUNDS } from '../auth/constants/password.constants';
+import { QuestionSeries } from '../question/entities/question-series.entity';
 import {
   CreateUserRequestDto,
   DeleteUserResponseDto,
@@ -30,6 +31,8 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(QuestionSeries)
+    private readonly questionSeriesRepository: Repository<QuestionSeries>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -121,7 +124,7 @@ export class UserService {
     dto: UpdateUserRequestDto,
   ): Promise<GetUserResponseDto> {
     const user = await this.findById(userId);
-    this.applyUserUpdates(user, dto);
+    await this.applyUserUpdates(user, dto);
     const savedUser = await this.userRepository.save(user);
     return this.mapUserToResponse(savedUser);
   }
@@ -206,7 +209,10 @@ export class UserService {
     };
   }
 
-  private applyUserUpdates(user: User, dto: UpdateUserRequestDto): void {
+  private async applyUserUpdates(
+    user: User,
+    dto: UpdateUserRequestDto,
+  ): Promise<void> {
     if (dto.nickname !== undefined) {
       user.nickname = dto.nickname;
     }
@@ -215,6 +221,15 @@ export class UserService {
     }
     if (dto.friendInviteCode !== undefined) {
       user.friendInviteCode = dto.friendInviteCode;
+    }
+    if (dto.questionSeriesId !== undefined) {
+      const series = await this.questionSeriesRepository.findOneBy({
+        id: dto.questionSeriesId,
+      });
+      if (!series) {
+        throw new BadRequestException('존재하지 않는 질문 시리즈입니다.');
+      }
+      user.questionSeriesId = series.id;
     }
   }
 }

@@ -22,7 +22,12 @@ export class QuestionSeries {
   @Column({ type: 'varchar', length: 500, nullable: true })
   description!: string | null;
 
-  @Column({ name: 'thumbnail_url', type: 'varchar', length: 500, nullable: true })
+  @Column({
+    name: 'thumbnail_url',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
   thumbnailUrl!: string | null;
 
   @OneToMany(() => Question, (question: Question) => question.questionSeries)
