@@ -23,7 +23,12 @@ import {
 import { JwtPayloadDto } from '../auth/dto/jwt-payload.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
 import {
+  CreateLetterReactionRequestDto,
+  CreateLetterReportRequestDto,
   CreateLetterRequestDto,
+  GetAiReplyResponseDto,
+  GetLetterReactionResponseDto,
+  GetLetterReportResponseDto,
   GetLetterRequestDto,
   GetLetterResponseDto,
   GetLettersRequestDto,
@@ -95,5 +100,68 @@ export class LetterController {
     @Body() dto: CreateLetterRequestDto,
   ): Promise<GetLetterResponseDto> {
     return this.letterService.create(request.user.sub, dto);
+  }
+
+  /**
+   * 내 일지에 달린 AI 답장 목록 조회
+   */
+  @Get(':id/ai-replies')
+  @ApiOperation({ summary: '내 일지에 달린 AI 답장 목록 조회' })
+  @ApiParam({ name: 'id', description: '편지 ID', example: '1' })
+  @ApiOkResponse({
+    description: '조회 성공',
+    type: GetAiReplyResponseDto,
+    isArray: true,
+  })
+  @ApiNotFoundResponse({ description: '일지를 찾을 수 없음' })
+  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  async findAiReplies(
+    @Req() request: JwtAuthRequest,
+    @Param() params: GetLetterRequestDto,
+  ): Promise<GetAiReplyResponseDto[]> {
+    return this.letterService.findAiReplies(request.user.sub, params.id);
+  }
+
+  /**
+   * 편지에 반응(스티커) 남기기
+   */
+  @Post(':id/reactions')
+  @ApiOperation({ summary: '편지에 반응(스티커) 남기기' })
+  @ApiParam({ name: 'id', description: '편지 ID', example: '1' })
+  @ApiBody({ type: CreateLetterReactionRequestDto })
+  @ApiCreatedResponse({
+    description: '등록 성공',
+    type: GetLetterReactionResponseDto,
+  })
+  @ApiNotFoundResponse({ description: '일지를 찾을 수 없음' })
+  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  async addReaction(
+    @Req() request: JwtAuthRequest,
+    @Param() params: GetLetterRequestDto,
+    @Body() dto: CreateLetterReactionRequestDto,
+  ): Promise<GetLetterReactionResponseDto> {
+    return this.letterService.addReaction(request.user.sub, params.id, dto);
+  }
+
+  /**
+   * 편지 신고
+   */
+  @Post(':id/reports')
+  @ApiOperation({ summary: '편지 신고' })
+  @ApiParam({ name: 'id', description: '편지 ID', example: '1' })
+  @ApiBody({ type: CreateLetterReportRequestDto })
+  @ApiCreatedResponse({
+    description: '신고 접수 성공',
+    type: GetLetterReportResponseDto,
+  })
+  @ApiBadRequestResponse({ description: '본인 일지는 신고할 수 없음' })
+  @ApiNotFoundResponse({ description: '일지를 찾을 수 없음' })
+  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  async addReport(
+    @Req() request: JwtAuthRequest,
+    @Param() params: GetLetterRequestDto,
+    @Body() dto: CreateLetterReportRequestDto,
+  ): Promise<GetLetterReportResponseDto> {
+    return this.letterService.addReport(request.user.sub, params.id, dto);
   }
 }

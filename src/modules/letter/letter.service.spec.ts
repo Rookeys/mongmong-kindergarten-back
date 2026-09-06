@@ -111,8 +111,14 @@ describe('LetterService.create', () => {
         cb(managerMock.manager),
       ),
     } as unknown as DataSource;
-    const letterRepository = {} as never;
-    return new LetterService(letterRepository, dataSource);
+    const emptyRepository = {} as never;
+    return new LetterService(
+      emptyRepository,
+      emptyRepository,
+      emptyRepository,
+      emptyRepository,
+      dataSource,
+    );
   }
 
   it('진행 중인 질문을 다음 질문으로 넘기고 작성 리워드를 적립한다', async () => {

@@ -9,6 +9,7 @@ import { AiReply } from './entities/ai-reply.entity';
 import { Letter } from './entities/letter.entity';
 import { LetterReaction } from './entities/letter-reaction.entity';
 import { LetterReport } from './entities/letter-report.entity';
+import { AiReplyController } from './ai-reply.controller';
 import { LetterController } from './letter.controller';
 import { LetterService } from './letter.service';
 
@@ -29,7 +30,7 @@ import { LetterService } from './letter.service';
     ]),
     AuthModule,
   ],
-  controllers: [LetterController],
+  controllers: [LetterController, AiReplyController],
   providers: [LetterService],
   exports: [TypeOrmModule],
 })

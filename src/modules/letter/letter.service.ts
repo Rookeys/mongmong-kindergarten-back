@@ -16,11 +16,20 @@ import { Question } from '../question/entities/question.entity';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
 import {
+  CreateLetterReactionRequestDto,
+  CreateLetterReportRequestDto,
   CreateLetterRequestDto,
+  GetAiReplyResponseDto,
+  GetLetterReactionResponseDto,
+  GetLetterReportResponseDto,
   GetLetterResponseDto,
   GetLettersRequestDto,
 } from './dto';
+import { AiReply } from './entities/ai-reply.entity';
 import { Letter } from './entities/letter.entity';
+import { LetterReaction } from './entities/letter-reaction.entity';
+import { LetterReport } from './entities/letter-report.entity';
+import { LetterReportStatus } from './enums/letter-report-status.enum';
 
 const DEFAULT_LETTERS_TAKE = 20;
 
@@ -32,6 +41,12 @@ export class LetterService {
   constructor(
     @InjectRepository(Letter)
     private readonly letterRepository: Repository<Letter>,
+    @InjectRepository(AiReply)
+    private readonly aiReplyRepository: Repository<AiReply>,
+    @InjectRepository(LetterReaction)
+    private readonly letterReactionRepository: Repository<LetterReaction>,
+    @InjectRepository(LetterReport)
+    private readonly letterReportRepository: Repository<LetterReport>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -182,6 +197,146 @@ export class LetterService {
     ]);
     pendingInvite.rewardGivenYn = true;
     await manager.save(UserInvite, pendingInvite);
+  }
+
+  /**
+   * 내 일지에 달린 AI 답장 목록을 조회한다.
+   */
+  async findAiReplies(
+    userId: string,
+    letterId: string,
+  ): Promise<GetAiReplyResponseDto[]> {
+    const letter = await this.letterRepository.findOneBy({
+      id: letterId,
+      userId,
+    });
+    if (!letter) {
+      throw new NotFoundException('일지를 찾을 수 없습니다.');
+    }
+    const aiReplies = await this.aiReplyRepository.find({
+      where: { letterId },
+      order: { createdDate: 'ASC' },
+    });
+    return aiReplies.map((aiReply) => this.mapAiReplyToResponse(aiReply));
+  }
+
+  /**
+   * AI 답장을 읽음 처리한다.
+   */
+  async markAiReplyAsRead(
+    userId: string,
+    aiReplyId: string,
+  ): Promise<GetAiReplyResponseDto> {
+    const aiReply = await this.aiReplyRepository.findOneBy({
+      id: aiReplyId,
+      userId,
+    });
+    if (!aiReply) {
+      throw new NotFoundException('AI 답장을 찾을 수 없습니다.');
+    }
+    if (!aiReply.isRead) {
+      aiReply.isRead = true;
+      await this.aiReplyRepository.save(aiReply);
+    }
+    return this.mapAiReplyToResponse(aiReply);
+  }
+
+  /**
+   * 편지에 반응(스티커)을 남긴다. 이미 반응을 남긴 경우 반응 유형을 갱신한다.
+   */
+  async addReaction(
+    userId: string,
+    letterId: string,
+    dto: CreateLetterReactionRequestDto,
+  ): Promise<GetLetterReactionResponseDto> {
+    const letter = await this.findVisibleLetter(letterId, userId);
+    const existing = await this.letterReactionRepository.findOneBy({
+      letterId: letter.id,
+      userId,
+    });
+    if (existing) {
+      existing.reactionType = dto.reactionType;
+      const saved = await this.letterReactionRepository.save(existing);
+      return this.mapReactionToResponse(saved);
+    }
+    const created = await this.letterReactionRepository.save({
+      letterId: letter.id,
+      userId,
+      reactionType: dto.reactionType,
+    });
+    return this.mapReactionToResponse(created);
+  }
+
+  /**
+   * 편지를 신고한다. 본인 일지는 신고할 수 없다.
+   */
+  async addReport(
+    userId: string,
+    letterId: string,
+    dto: CreateLetterReportRequestDto,
+  ): Promise<GetLetterReportResponseDto> {
+    if (
+      (await this.letterRepository.findOneBy({ id: letterId, userId })) !== null
+    ) {
+      throw new BadRequestException('본인 일지는 신고할 수 없습니다.');
+    }
+    const letter = await this.findVisibleLetter(letterId, userId);
+    const created = await this.letterReportRepository.save({
+      letterId: letter.id,
+      reporterUserId: userId,
+      reasonType: dto.reasonType,
+      reasonDetail: dto.reasonDetail ?? null,
+      status: LetterReportStatus.PENDING,
+    });
+    return this.mapReportToResponse(created);
+  }
+
+  /**
+   * 본인 일지이거나 비공개가 아닌 일지를 조회한다. 그 외에는 존재를 숨긴다.
+   */
+  private async findVisibleLetter(
+    letterId: string,
+    userId: string,
+  ): Promise<Letter> {
+    const letter = await this.letterRepository.findOneBy({ id: letterId });
+    if (!letter || (letter.isPrivate && letter.userId !== userId)) {
+      throw new NotFoundException('일지를 찾을 수 없습니다.');
+    }
+    return letter;
+  }
+
+  private mapAiReplyToResponse(aiReply: AiReply): GetAiReplyResponseDto {
+    return {
+      id: aiReply.id,
+      letterId: aiReply.letterId,
+      content: aiReply.content,
+      isRead: aiReply.isRead,
+      createdDate: aiReply.createdDate,
+    };
+  }
+
+  private mapReactionToResponse(
+    reaction: LetterReaction,
+  ): GetLetterReactionResponseDto {
+    return {
+      id: reaction.id,
+      letterId: reaction.letterId,
+      reactionType: reaction.reactionType,
+      createdDate: reaction.createdDate,
+    };
+  }
+
+  private mapReportToResponse(
+    report: LetterReport,
+  ): GetLetterReportResponseDto {
+    return {
+      id: report.id,
+      letterId: report.letterId,
+      reasonType: report.reasonType,
+      reasonDetail: report.reasonDetail,
+      status: report.status,
+      createdDate: report.createdDate,
+    };
   }
 
   private mapLetterToResponse(letter: Letter): GetLetterResponseDto {
