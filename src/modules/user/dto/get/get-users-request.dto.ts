@@ -9,6 +9,7 @@ export class GetUsersRequestDto {
   @ApiPropertyOptional({
     description: '계정 상태로 필터링',
     enum: UserStatus,
+    enumName: 'UserStatus',
     example: UserStatus.ACTIVE,
   })
   @IsOptional()

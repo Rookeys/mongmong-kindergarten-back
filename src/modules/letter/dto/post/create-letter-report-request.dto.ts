@@ -9,6 +9,7 @@ export class CreateLetterReportRequestDto {
   @ApiProperty({
     description: '신고 사유',
     enum: LetterReportReasonType,
+    enumName: 'LetterReportReasonType',
     example: LetterReportReasonType.INAPPROPRIATE,
   })
   @IsEnum(LetterReportReasonType)

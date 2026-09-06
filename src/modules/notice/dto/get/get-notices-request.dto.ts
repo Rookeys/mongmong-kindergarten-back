@@ -10,6 +10,7 @@ export class GetNoticesRequestDto {
   @ApiPropertyOptional({
     description: '공지 유형으로 필터링',
     enum: NoticeType,
+    enumName: 'NoticeType',
     example: NoticeType.NOTICE,
   })
   @IsOptional()

@@ -9,6 +9,7 @@ export class GetItemsRequestDto {
   @ApiPropertyOptional({
     description: '아이템 유형으로 필터링',
     enum: ItemType,
+    enumName: 'ItemType',
     example: ItemType.HAT,
   })
   @IsOptional()

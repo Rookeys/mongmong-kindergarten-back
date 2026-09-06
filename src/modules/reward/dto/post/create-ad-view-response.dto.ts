@@ -8,6 +8,7 @@ export class CreateAdViewResponseDto {
   @ApiProperty({
     description: '광고 유형',
     enum: AdType,
+    enumName: 'AdType',
     example: AdType.REWARDED,
   })
   adType!: AdType;

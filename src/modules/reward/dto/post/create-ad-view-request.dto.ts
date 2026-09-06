@@ -10,6 +10,7 @@ export class CreateAdViewRequestDto {
     description:
       '광고 유형 (rewarded만 리워드 지급, interstitial은 시청 기록만 남김)',
     enum: AdType,
+    enumName: 'AdType',
     example: AdType.REWARDED,
   })
   @IsEnum(AdType)

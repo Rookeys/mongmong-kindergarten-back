@@ -19,7 +19,11 @@ export class UpdateItemRequestDto {
   @MaxLength(100)
   name?: string;
 
-  @ApiPropertyOptional({ description: '아이템 유형', enum: ItemType })
+  @ApiPropertyOptional({
+    description: '아이템 유형',
+    enum: ItemType,
+    enumName: 'ItemType',
+  })
   @IsOptional()
   @IsEnum(ItemType)
   itemType?: ItemType;

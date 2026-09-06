@@ -9,6 +9,7 @@ export class GetTodayQuestionRequestDto {
   @ApiPropertyOptional({
     description: '콘텐츠 로케일 (미지정 시 한국어)',
     enum: LocaleType,
+    enumName: 'LocaleType',
     example: LocaleType.KO,
   })
   @IsOptional()

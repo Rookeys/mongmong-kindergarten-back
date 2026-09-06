@@ -15,6 +15,7 @@ export class GetLetterReportResponseDto {
   @ApiProperty({
     description: '신고 사유',
     enum: LetterReportReasonType,
+    enumName: 'LetterReportReasonType',
     example: LetterReportReasonType.INAPPROPRIATE,
   })
   reasonType!: LetterReportReasonType;
@@ -29,6 +30,7 @@ export class GetLetterReportResponseDto {
   @ApiProperty({
     description: '처리 상태',
     enum: LetterReportStatus,
+    enumName: 'LetterReportStatus',
     example: LetterReportStatus.PENDING,
   })
   status!: LetterReportStatus;

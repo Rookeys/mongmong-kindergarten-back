@@ -17,6 +17,7 @@ export class GetCharacterResponseDto {
   @ApiProperty({
     description: '상태',
     enum: CharacterStatus,
+    enumName: 'CharacterStatus',
     example: CharacterStatus.GROWING,
   })
   status!: CharacterStatus;

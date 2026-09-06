@@ -12,7 +12,11 @@ import { NoticeType } from '../../enums/notice-type.enum';
  * 공지 부분 수정 요청 DTO (관리자용)
  */
 export class UpdateNoticeRequestDto {
-  @ApiPropertyOptional({ description: '공지 유형', enum: NoticeType })
+  @ApiPropertyOptional({
+    description: '공지 유형',
+    enum: NoticeType,
+    enumName: 'NoticeType',
+  })
   @IsOptional()
   @IsEnum(NoticeType)
   type?: NoticeType;

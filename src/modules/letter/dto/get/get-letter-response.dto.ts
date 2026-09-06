@@ -33,6 +33,7 @@ export class GetLetterResponseDto {
   @ApiProperty({
     description: '작성 로케일',
     enum: LocaleType,
+    enumName: 'LocaleType',
     example: LocaleType.KO,
   })
   localeType!: LocaleType;

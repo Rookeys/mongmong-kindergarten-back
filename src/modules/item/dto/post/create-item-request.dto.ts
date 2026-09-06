@@ -22,6 +22,7 @@ export class CreateItemRequestDto {
   @ApiProperty({
     description: '아이템 유형',
     enum: ItemType,
+    enumName: 'ItemType',
     example: ItemType.HAT,
   })
   @IsEnum(ItemType)

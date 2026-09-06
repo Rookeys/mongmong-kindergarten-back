@@ -51,6 +51,7 @@ export class CreateLetterRequestDto {
   @ApiPropertyOptional({
     description: '작성 로케일 (미지정 시 한국어)',
     enum: LocaleType,
+    enumName: 'LocaleType',
     example: LocaleType.KO,
   })
   @IsOptional()

@@ -11,6 +11,7 @@ export class GetNoticeResponseDto {
   @ApiProperty({
     description: '공지 유형',
     enum: NoticeType,
+    enumName: 'NoticeType',
     example: NoticeType.NOTICE,
   })
   type!: NoticeType;

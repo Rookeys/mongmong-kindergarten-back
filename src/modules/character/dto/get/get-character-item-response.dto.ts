@@ -17,6 +17,7 @@ export class GetCharacterItemResponseDto {
   @ApiProperty({
     description: '아이템 유형',
     enum: ItemType,
+    enumName: 'ItemType',
     example: ItemType.HAT,
   })
   itemType!: ItemType;

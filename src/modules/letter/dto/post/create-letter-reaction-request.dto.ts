@@ -9,6 +9,7 @@ export class CreateLetterReactionRequestDto {
   @ApiProperty({
     description: '반응 유형',
     enum: LetterReactionType,
+    enumName: 'LetterReactionType',
     example: LetterReactionType.LIKE,
   })
   @IsEnum(LetterReactionType)

@@ -19,6 +19,7 @@ export class UpdateUserRequestDto {
   @ApiPropertyOptional({
     description: '계정 상태',
     enum: UserStatus,
+    enumName: 'UserStatus',
     example: UserStatus.ACTIVE,
   })
   @IsOptional()

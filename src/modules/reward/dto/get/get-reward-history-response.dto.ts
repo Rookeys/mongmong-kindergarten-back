@@ -11,6 +11,7 @@ export class GetRewardHistoryResponseDto {
   @ApiProperty({
     description: '적립 유형',
     enum: RewardType,
+    enumName: 'RewardType',
     example: RewardType.AD,
   })
   type!: RewardType;

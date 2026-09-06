@@ -23,6 +23,7 @@ export class GetTodayQuestionResponseDto {
   @ApiProperty({
     description: '실제로 반환된 콘텐츠의 로케일',
     enum: LocaleType,
+    enumName: 'LocaleType',
     example: LocaleType.KO,
   })
   localeType!: LocaleType;
