@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import { BCRYPT_SALT_ROUNDS } from '../auth/constants/password.constants';
 import { QuestionSeries } from '../question/entities/question-series.entity';
@@ -17,6 +17,7 @@ import {
   UpdateUserRequestDto,
 } from './dto';
 import { User } from './entities/user.entity';
+import { UserInvite } from './entities/user-invite.entity';
 import { UserSetting } from './entities/user-setting.entity';
 import { LoginType } from './enums/login-type.enum';
 import { UserRole } from './enums/user-role.enum';
@@ -73,11 +74,23 @@ export class UserService {
     await this.ensureEmailIsAvailable(dto.email);
     const hashedPassword = await bcrypt.hash(dto.password, BCRYPT_SALT_ROUNDS);
     const savedUser = await this.dataSource.transaction(async (manager) => {
+      const inviter = await this.findInviterByCode(
+        manager,
+        dto.friendInviteCode,
+      );
       const user = await manager.save(
         User,
         this.buildLocalUserPayload(dto, hashedPassword),
       );
       await manager.save(UserSetting, this.buildDefaultUserSetting(user));
+      if (inviter) {
+        await manager.save(UserInvite, {
+          inviterUserId: inviter.id,
+          inviteeUserId: user.id,
+          inviteCode: inviter.myInviteCode,
+          rewardGivenYn: false,
+        });
+      }
       return user;
     });
     return this.mapUserToResponse(savedUser);
@@ -174,6 +187,22 @@ export class UserService {
     if (existingUser) {
       throw new BadRequestException('이미 존재하는 이메일입니다.');
     }
+  }
+
+  private async findInviterByCode(
+    manager: EntityManager,
+    friendInviteCode?: string,
+  ): Promise<User | null> {
+    if (!friendInviteCode) {
+      return null;
+    }
+    const inviter = await manager.findOneBy(User, {
+      myInviteCode: friendInviteCode,
+    });
+    if (!inviter) {
+      throw new BadRequestException('유효하지 않은 친구 초대 코드입니다.');
+    }
+    return inviter;
   }
 
   private buildLocalUserPayload(
