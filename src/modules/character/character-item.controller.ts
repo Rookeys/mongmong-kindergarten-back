@@ -1,3 +1,5 @@
+import { ApiErrors } from '../../common/api-errors.decorator';
+import { ErrorCode } from '../../common/error-code';
 import {
   Body,
   Controller,
@@ -9,16 +11,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtPayloadDto } from '../auth/dto/jwt-payload.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
@@ -54,7 +53,11 @@ export class CharacterItemController {
     type: GetCharacterItemResponseDto,
     isArray: true,
   })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+  )
   async findMine(
     @Req() request: JwtAuthRequest,
   ): Promise<GetCharacterItemResponseDto[]> {
@@ -71,9 +74,16 @@ export class CharacterItemController {
     description: '구매 성공',
     type: GetCharacterItemResponseDto,
   })
-  @ApiBadRequestResponse({ description: '리워드 부족 또는 이미 보유한 아이템' })
-  @ApiNotFoundResponse({ description: '아이템을 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.ITEM_NOT_FOUND,
+    ErrorCode.CHARACTER_ITEM_ALREADY_OWNED,
+    ErrorCode.REWARD_INSUFFICIENT,
+    ErrorCode.USER_NOT_FOUND,
+  )
   async purchase(
     @Req() request: JwtAuthRequest,
     @Body() dto: CreateCharacterItemRequestDto,
@@ -92,8 +102,13 @@ export class CharacterItemController {
     description: '처리 성공',
     type: GetCharacterItemResponseDto,
   })
-  @ApiNotFoundResponse({ description: '보유한 아이템을 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.CHARACTER_ITEM_NOT_OWNED,
+  )
   async updateEquip(
     @Req() request: JwtAuthRequest,
     @Param() params: GetCharacterItemRequestDto,

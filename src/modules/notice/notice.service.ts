@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserRole } from '../user/enums/user-role.enum';
@@ -49,7 +51,9 @@ export class NoticeService {
   ): Promise<GetNoticeResponseDto> {
     const notice = await this.findById(noticeId);
     if (!notice.isPublished && requesterRole !== UserRole.ADMIN) {
-      throw new NotFoundException('공지를 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.NOTICE_NOT_FOUND, {
+        noticeId: noticeId,
+      });
     }
     return this.mapNoticeToResponse(notice);
   }
@@ -96,7 +100,9 @@ export class NoticeService {
   private async findById(noticeId: string): Promise<Notice> {
     const notice = await this.noticeRepository.findOneBy({ id: noticeId });
     if (!notice) {
-      throw new NotFoundException('공지를 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.NOTICE_NOT_FOUND, {
+        noticeId: noticeId,
+      });
     }
     return notice;
   }

@@ -1,4 +1,6 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../../common/app-exception';
+import { ErrorCode } from '../../../common/error-code';
 import { KakaoUserProfile } from '../types/kakao-user-profile.type';
 
 const KAKAO_USER_ME_URL = 'https://kapi.kakao.com/v2/user/me';
@@ -12,23 +14,27 @@ export class KakaoAuthService {
    * 카카오 Access Token으로 사용자 프로필을 조회한다.
    */
   async fetchUserProfile(kakaoAccessToken: string): Promise<KakaoUserProfile> {
-    const response = await fetch(KAKAO_USER_ME_URL, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${kakaoAccessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetch(KAKAO_USER_ME_URL, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${kakaoAccessToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+        },
+      });
+    } catch {
+      throw new AppException(ErrorCode.KAKAO_UPSTREAM_ERROR);
+    }
+    if (response.status >= 500) {
+      throw new AppException(ErrorCode.KAKAO_UPSTREAM_ERROR);
+    }
     if (!response.ok) {
-      throw new UnauthorizedException(
-        '유효하지 않은 카카오 Access Token입니다.',
-      );
+      throw new AppException(ErrorCode.KAKAO_TOKEN_INVALID);
     }
     const kakaoUserProfile = (await response.json()) as KakaoUserProfile;
     if (!kakaoUserProfile.id) {
-      throw new UnauthorizedException(
-        '카카오 사용자 정보를 확인할 수 없습니다.',
-      );
+      throw new AppException(ErrorCode.KAKAO_PROFILE_UNAVAILABLE);
     }
     return kakaoUserProfile;
   }

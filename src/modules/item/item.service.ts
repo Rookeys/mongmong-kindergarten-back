@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -37,7 +39,9 @@ export class ItemService {
   async findById(itemId: string): Promise<Item> {
     const item = await this.itemRepository.findOneBy({ id: itemId });
     if (!item) {
-      throw new NotFoundException('아이템을 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.ITEM_NOT_FOUND, {
+        itemId: itemId,
+      });
     }
     return item;
   }

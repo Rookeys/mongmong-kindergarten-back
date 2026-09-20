@@ -1,12 +1,12 @@
+import { ApiErrors } from '../../common/api-errors.decorator';
+import { ErrorCode } from '../../common/error-code';
 import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtPayloadDto } from '../auth/dto/jwt-payload.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
@@ -33,7 +33,11 @@ export class CharacterController {
   @Get('me')
   @ApiOperation({ summary: '내 캐릭터 조회' })
   @ApiOkResponse({ description: '조회 성공', type: GetCharacterResponseDto })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+  )
   async findMine(
     @Req() request: JwtAuthRequest,
   ): Promise<GetCharacterResponseDto> {
@@ -49,8 +53,12 @@ export class CharacterController {
     description: '졸업 처리 성공',
     type: GetGraduationCardResponseDto,
   })
-  @ApiNotFoundResponse({ description: '졸업 가능한 캐릭터를 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.CHARACTER_NOT_FOUND,
+  )
   async graduate(
     @Req() request: JwtAuthRequest,
   ): Promise<GetGraduationCardResponseDto> {
@@ -67,7 +75,11 @@ export class CharacterController {
     type: GetGraduationCardResponseDto,
     isArray: true,
   })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+  )
   async findMyGraduationCards(
     @Req() request: JwtAuthRequest,
   ): Promise<GetGraduationCardResponseDto[]> {

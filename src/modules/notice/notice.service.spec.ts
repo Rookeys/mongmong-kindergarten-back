@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ErrorCode } from '../../common/error-code';
 import { UserRole } from '../user/enums/user-role.enum';
 import { NoticeType } from './enums/notice-type.enum';
 import { NoticeService } from './notice.service';
@@ -53,9 +53,9 @@ describe('NoticeService.findOne', () => {
   it('일반 사용자가 비게시 공지를 조회하면 찾을 수 없다', async () => {
     const service = buildService(notices);
 
-    await expect(service.findOne('2', UserRole.USER)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(service.findOne('2', UserRole.USER)).rejects.toMatchObject({
+      code: ErrorCode.NOTICE_NOT_FOUND,
+    });
   });
 
   it('관리자는 비게시 공지도 조회할 수 있다', async () => {

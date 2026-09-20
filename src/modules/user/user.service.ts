@@ -1,8 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -54,7 +52,9 @@ export class UserService {
   async findById(userId: string): Promise<User> {
     const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+        userId: userId,
+      });
     }
     return user;
   }
@@ -185,7 +185,7 @@ export class UserService {
   private async ensureEmailIsAvailable(email: string): Promise<void> {
     const existingUser = await this.userRepository.findOneBy({ email });
     if (existingUser) {
-      throw new BadRequestException('이미 존재하는 이메일입니다.');
+      throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
     }
   }
 
@@ -200,7 +200,12 @@ export class UserService {
       myInviteCode: friendInviteCode,
     });
     if (!inviter) {
-      throw new BadRequestException('유효하지 않은 친구 초대 코드입니다.');
+      throw new AppException(
+        ErrorCode.INVITE_CODE_INVALID,
+        { friendInviteCode },
+        undefined,
+        `유효하지 않은 친구 초대 코드입니다. (${friendInviteCode})`,
+      );
     }
     return inviter;
   }
@@ -256,7 +261,9 @@ export class UserService {
         id: dto.questionSeriesId,
       });
       if (!series) {
-        throw new BadRequestException('존재하지 않는 질문 시리즈입니다.');
+        throw AppException.withTarget(ErrorCode.QUESTION_SERIES_NOT_FOUND, {
+          questionSeriesId: dto.questionSeriesId,
+        });
       }
       user.questionSeriesId = series.id;
     }

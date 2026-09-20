@@ -1,3 +1,5 @@
+import { ApiErrors } from '../../common/api-errors.decorator';
+import { ErrorCode } from '../../common/error-code';
 import {
   Body,
   Controller,
@@ -9,16 +11,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtPayloadDto } from '../auth/dto/jwt-payload.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
@@ -59,7 +58,12 @@ export class LetterController {
     type: GetLetterResponseDto,
     isArray: true,
   })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+  )
   async findAll(
     @Req() request: JwtAuthRequest,
     @Query() query: GetLettersRequestDto,
@@ -74,8 +78,13 @@ export class LetterController {
   @ApiOperation({ summary: '내 일지 단건 조회' })
   @ApiParam({ name: 'id', description: '편지 ID', example: '1' })
   @ApiOkResponse({ description: '조회 성공', type: GetLetterResponseDto })
-  @ApiNotFoundResponse({ description: '일지를 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.LETTER_NOT_FOUND,
+  )
   async findOne(
     @Req() request: JwtAuthRequest,
     @Param() params: GetLetterRequestDto,
@@ -93,8 +102,14 @@ export class LetterController {
     description: '작성 성공',
     type: GetLetterResponseDto,
   })
-  @ApiBadRequestResponse({ description: '오늘의 질문 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.USER_NOT_FOUND,
+    ErrorCode.QUESTION_SERIES_NOT_SELECTED,
+  )
   async create(
     @Req() request: JwtAuthRequest,
     @Body() dto: CreateLetterRequestDto,
@@ -113,8 +128,13 @@ export class LetterController {
     type: GetAiReplyResponseDto,
     isArray: true,
   })
-  @ApiNotFoundResponse({ description: '일지를 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.LETTER_NOT_FOUND,
+  )
   async findAiReplies(
     @Req() request: JwtAuthRequest,
     @Param() params: GetLetterRequestDto,
@@ -133,8 +153,13 @@ export class LetterController {
     description: '등록 성공',
     type: GetLetterReactionResponseDto,
   })
-  @ApiNotFoundResponse({ description: '일지를 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.LETTER_NOT_FOUND,
+  )
   async addReaction(
     @Req() request: JwtAuthRequest,
     @Param() params: GetLetterRequestDto,
@@ -154,9 +179,14 @@ export class LetterController {
     description: '신고 접수 성공',
     type: GetLetterReportResponseDto,
   })
-  @ApiBadRequestResponse({ description: '본인 일지는 신고할 수 없음' })
-  @ApiNotFoundResponse({ description: '일지를 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.LETTER_REPORT_OWN_LETTER,
+    ErrorCode.LETTER_NOT_FOUND,
+  )
   async addReport(
     @Req() request: JwtAuthRequest,
     @Param() params: GetLetterRequestDto,

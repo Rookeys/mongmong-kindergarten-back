@@ -1,8 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, MoreThan, Repository } from 'typeorm';
 import { LocaleType } from '../../common/enums/locale-type.enum';
@@ -78,7 +76,9 @@ export class LetterService {
       userId,
     });
     if (!letter) {
-      throw new NotFoundException('일지를 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.LETTER_NOT_FOUND, {
+        letterId: letterId,
+      });
     }
     return this.mapLetterToResponse(letter);
   }
@@ -97,12 +97,12 @@ export class LetterService {
       async (manager: EntityManager) => {
         const user = await manager.findOneBy(User, { id: userId });
         if (!user) {
-          throw new NotFoundException('사용자를 찾을 수 없습니다.');
+          throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+            userId: userId,
+          });
         }
         if (!user.currentQuestionId) {
-          throw new BadRequestException(
-            '오늘의 질문이 없습니다. 질문 시리즈를 먼저 선택해주세요.',
-          );
+          throw new AppException(ErrorCode.QUESTION_SERIES_NOT_SELECTED);
         }
 
         const isFirstLetter =
@@ -211,7 +211,9 @@ export class LetterService {
       userId,
     });
     if (!letter) {
-      throw new NotFoundException('일지를 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.LETTER_NOT_FOUND, {
+        letterId: letterId,
+      });
     }
     const aiReplies = await this.aiReplyRepository.find({
       where: { letterId },
@@ -232,7 +234,9 @@ export class LetterService {
       userId,
     });
     if (!aiReply) {
-      throw new NotFoundException('AI 답장을 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.AI_REPLY_NOT_FOUND, {
+        aiReplyId: aiReplyId,
+      });
     }
     if (!aiReply.isRead) {
       aiReply.isRead = true;
@@ -278,7 +282,7 @@ export class LetterService {
     if (
       (await this.letterRepository.findOneBy({ id: letterId, userId })) !== null
     ) {
-      throw new BadRequestException('본인 일지는 신고할 수 없습니다.');
+      throw new AppException(ErrorCode.LETTER_REPORT_OWN_LETTER);
     }
     const letter = await this.findVisibleLetter(letterId, userId);
     const created = await this.letterReportRepository.save({
@@ -300,7 +304,9 @@ export class LetterService {
   ): Promise<Letter> {
     const letter = await this.letterRepository.findOneBy({ id: letterId });
     if (!letter || (letter.isPrivate && letter.userId !== userId)) {
-      throw new NotFoundException('일지를 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.LETTER_NOT_FOUND, {
+        letterId: letterId,
+      });
     }
     return letter;
   }

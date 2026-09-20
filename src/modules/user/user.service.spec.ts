@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { ErrorCode } from '../../common/error-code';
 import { DataSource } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserInvite } from './entities/user-invite.entity';
@@ -89,7 +89,7 @@ describe('UserService.create (친구 초대 코드)', () => {
     );
   });
 
-  it('존재하지 않는 초대 코드면 BadRequestException을 던진다', async () => {
+  it('존재하지 않는 초대 코드면 예외를 던진다', async () => {
     const managerMock = createManagerMock({ users: new Map() });
     const service = buildService(managerMock);
 
@@ -100,7 +100,7 @@ describe('UserService.create (친구 초대 코드)', () => {
         nickname: '새친구',
         friendInviteCode: 'NOPE0000',
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toMatchObject({ code: ErrorCode.INVITE_CODE_INVALID });
     expect(managerMock.savedInvites).toHaveLength(0);
   });
 });

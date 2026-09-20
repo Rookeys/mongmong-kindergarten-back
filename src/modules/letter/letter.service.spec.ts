@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { ErrorCode } from '../../common/error-code';
 import { DataSource } from 'typeorm';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import {
@@ -170,7 +170,7 @@ describe('LetterService.create', () => {
     expect(user.currentQuestionId).toBeNull();
   });
 
-  it('오늘의 질문이 없으면 BadRequestException을 던진다', async () => {
+  it('오늘의 질문이 없으면 예외를 던진다', async () => {
     const user: FakeUser = {
       id: 'u1',
       currentQuestionId: null,
@@ -185,7 +185,7 @@ describe('LetterService.create', () => {
 
     await expect(
       service.create('u1', { answer: '답변' }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toMatchObject({ code: ErrorCode.QUESTION_SERIES_NOT_SELECTED });
   });
 
   it('첫 일지 작성이고 대기 중인 초대가 있으면 초대자/피초대자 모두에게 리워드를 지급한다', async () => {

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-local';
 import { GetUserResponseDto } from '../../user/dto/get/get-user-response.dto';
@@ -14,15 +14,9 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   }
 
   /**
-   * email/password를 검증하고 공개 사용자 정보를 반환한다.
+   * email/password를 검증하고 공개 사용자 정보를 반환한다. 실패 사유는 validateUser가 AppException으로 던진다.
    */
   async validate(email: string, password: string): Promise<GetUserResponseDto> {
-    const user = await this.authService.validateUser(email, password);
-    if (!user) {
-      throw new UnauthorizedException(
-        '이메일 또는 비밀번호가 올바르지 않습니다.',
-      );
-    }
-    return user;
+    return this.authService.validateUser(email, password);
   }
 }

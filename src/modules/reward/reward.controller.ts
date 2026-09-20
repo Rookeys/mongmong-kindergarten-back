@@ -1,13 +1,13 @@
+import { ApiErrors } from '../../common/api-errors.decorator';
+import { ErrorCode } from '../../common/error-code';
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtPayloadDto } from '../auth/dto/jwt-payload.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
@@ -42,7 +42,12 @@ export class RewardController {
     type: GetRewardHistoryResponseDto,
     isArray: true,
   })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+  )
   async findMyHistory(
     @Req() request: JwtAuthRequest,
   ): Promise<GetRewardHistoryResponseDto[]> {
@@ -63,8 +68,14 @@ export class RewardController {
     description: '기록 성공',
     type: CreateAdViewResponseDto,
   })
-  @ApiBadRequestResponse({ description: '오늘 이미 시청한 광고' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.AD_ALREADY_VIEWED_TODAY,
+    ErrorCode.USER_NOT_FOUND,
+  )
   async recordAdView(
     @Req() request: JwtAuthRequest,
     @Body() dto: CreateAdViewRequestDto,

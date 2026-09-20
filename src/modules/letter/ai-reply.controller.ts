@@ -1,12 +1,12 @@
+import { ApiErrors } from '../../common/api-errors.decorator';
+import { ErrorCode } from '../../common/error-code';
 import { Controller, Param, Patch, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtPayloadDto } from '../auth/dto/jwt-payload.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
@@ -34,8 +34,13 @@ export class AiReplyController {
   @ApiOperation({ summary: 'AI 답장 읽음 처리' })
   @ApiParam({ name: 'id', description: 'AI 답장 ID', example: '1' })
   @ApiOkResponse({ description: '처리 성공', type: GetAiReplyResponseDto })
-  @ApiNotFoundResponse({ description: 'AI 답장을 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.AI_REPLY_NOT_FOUND,
+  )
   async markAsRead(
     @Req() request: JwtAuthRequest,
     @Param() params: GetAiReplyRequestDto,

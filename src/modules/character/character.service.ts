@@ -1,8 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Item } from '../item/entities/item.entity';
@@ -79,7 +77,9 @@ export class CharacterService {
         );
         const item = await manager.findOneBy(Item, { id: dto.itemId });
         if (!item) {
-          throw new NotFoundException('아이템을 찾을 수 없습니다.');
+          throw AppException.withTarget(ErrorCode.ITEM_NOT_FOUND, {
+            itemId: dto.itemId,
+          });
         }
 
         const alreadyOwned = await manager.findOneBy(CharacterItemMap, {
@@ -87,15 +87,27 @@ export class CharacterService {
           itemId: item.id,
         });
         if (alreadyOwned) {
-          throw new BadRequestException('이미 보유한 아이템입니다.');
+          throw new AppException(
+            ErrorCode.CHARACTER_ITEM_ALREADY_OWNED,
+            { itemId: item.id },
+            undefined,
+            `이미 보유한 아이템입니다. (${item.name})`,
+          );
         }
 
         const user = await manager.findOneBy(User, { id: userId });
         if (!user) {
-          throw new NotFoundException('사용자를 찾을 수 없습니다.');
+          throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+            userId: userId,
+          });
         }
         if (user.rewardCount < item.cost) {
-          throw new BadRequestException('리워드(꿈조각)가 부족합니다.');
+          throw new AppException(
+            ErrorCode.REWARD_INSUFFICIENT,
+            { required: item.cost, current: user.rewardCount },
+            undefined,
+            `리워드(꿈조각)가 부족합니다. (필요 ${item.cost}개, 보유 ${user.rewardCount}개)`,
+          );
         }
 
         user.rewardCount -= item.cost;
@@ -134,7 +146,9 @@ export class CharacterService {
           relations: ['item'],
         });
         if (!target) {
-          throw new NotFoundException('보유한 아이템을 찾을 수 없습니다.');
+          throw AppException.withTarget(ErrorCode.CHARACTER_ITEM_NOT_OWNED, {
+            characterItemId: characterItemMapId,
+          });
         }
 
         if (dto.isEquipped) {
@@ -166,7 +180,7 @@ export class CharacterService {
           where: { userId, status: CharacterStatus.GROWING },
         });
         if (!character) {
-          throw new NotFoundException('졸업 가능한 캐릭터를 찾을 수 없습니다.');
+          throw new AppException(ErrorCode.CHARACTER_NOT_FOUND);
         }
 
         const equippedItemMaps = await manager.find(CharacterItemMap, {

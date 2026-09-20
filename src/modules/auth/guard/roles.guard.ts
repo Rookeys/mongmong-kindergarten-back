@@ -1,8 +1,6 @@
-import {
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
+import { AppException } from '../../../common/app-exception';
+import { ErrorCode } from '../../../common/error-code';
 import { CanActivate } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtPayloadDto } from '../dto/jwt-payload.dto';
@@ -28,7 +26,7 @@ export class RolesGuard implements CanActivate {
       user: JwtPayloadDto;
     }>();
     if (!requiredRoles.includes(request.user.role)) {
-      throw new ForbiddenException('접근 권한이 없습니다.');
+      throw new AppException(ErrorCode.FORBIDDEN_ROLE);
     }
     return true;
   }

@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ErrorCode } from '../../common/error-code';
 import { LetterReactionType } from './enums/letter-reaction-type.enum';
 import { LetterReportReasonType } from './enums/letter-report-reason-type.enum';
 import { LetterReportStatus } from './enums/letter-report-status.enum';
@@ -108,7 +108,7 @@ describe('LetterService.addReaction', () => {
       service.addReaction('viewer', 'l1', {
         reactionType: LetterReactionType.LIKE,
       }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toMatchObject({ code: ErrorCode.LETTER_NOT_FOUND });
   });
 });
 
@@ -126,7 +126,7 @@ describe('LetterService.addReport', () => {
       service.addReport('owner', 'l1', {
         reasonType: LetterReportReasonType.SPAM,
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toMatchObject({ code: ErrorCode.LETTER_REPORT_OWN_LETTER });
   });
 
   it('타인의 공개 일지는 신고 접수된다', async () => {
@@ -167,9 +167,9 @@ describe('LetterService.markAiReplyAsRead', () => {
     aiReplyRepo.findOneBy.mockResolvedValue(null);
     const service = buildService({ letter: letterRepo, aiReply: aiReplyRepo });
 
-    await expect(service.markAiReplyAsRead('u1', 'ai1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(service.markAiReplyAsRead('u1', 'ai1')).rejects.toMatchObject({
+      code: ErrorCode.AI_REPLY_NOT_FOUND,
+    });
   });
 
   it('읽지 않은 답장을 읽음 처리한다', async () => {

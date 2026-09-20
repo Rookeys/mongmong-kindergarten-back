@@ -1,8 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LocaleType } from '../../common/enums/locale-type.enum';
@@ -56,7 +54,9 @@ export class QuestionService {
   ): Promise<GetTodayQuestionResponseDto> {
     const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+        userId: userId,
+      });
     }
 
     const question = await this.resolveCurrentQuestion(user);
@@ -85,7 +85,7 @@ export class QuestionService {
     }
 
     if (!user.questionSeriesId) {
-      throw new BadRequestException('질문 시리즈를 먼저 선택해주세요.');
+      throw new AppException(ErrorCode.QUESTION_SERIES_NOT_SELECTED);
     }
 
     const firstQuestion = await this.questionRepository.findOne({
@@ -93,7 +93,7 @@ export class QuestionService {
       order: { orderNum: 'ASC' },
     });
     if (!firstQuestion) {
-      throw new NotFoundException('시리즈에 등록된 질문이 없습니다.');
+      throw new AppException(ErrorCode.QUESTION_EMPTY_SERIES);
     }
 
     await this.userRepository.update(user.id, {
@@ -114,14 +114,14 @@ export class QuestionService {
       return content;
     }
     if (locale === LocaleType.KO) {
-      throw new NotFoundException('질문 콘텐츠를 찾을 수 없습니다.');
+      throw new AppException(ErrorCode.QUESTION_CONTENT_NOT_FOUND);
     }
     const fallback = await this.questionContentRepository.findOneBy({
       questionId,
       localeType: LocaleType.KO,
     });
     if (!fallback) {
-      throw new NotFoundException('질문 콘텐츠를 찾을 수 없습니다.');
+      throw new AppException(ErrorCode.QUESTION_CONTENT_NOT_FOUND);
     }
     return fallback;
   }

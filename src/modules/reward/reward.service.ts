@@ -1,8 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
@@ -60,7 +58,12 @@ export class RewardService {
         viewDate,
       });
       if (alreadyViewed) {
-        throw new BadRequestException('오늘은 이미 시청한 광고입니다.');
+        throw new AppException(
+          ErrorCode.AD_ALREADY_VIEWED_TODAY,
+          { adType: dto.adType },
+          undefined,
+          `오늘은 이미 시청한 광고입니다. (${dto.adType})`,
+        );
       }
 
       const rewardAmount =
@@ -76,7 +79,9 @@ export class RewardService {
       if (rewardAmount > 0) {
         const user = await manager.findOneBy(User, { id: userId });
         if (!user) {
-          throw new NotFoundException('사용자를 찾을 수 없습니다.');
+          throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+            userId: userId,
+          });
         }
         user.rewardCount += rewardAmount;
         await manager.save(User, user);

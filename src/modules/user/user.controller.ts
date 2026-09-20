@@ -1,3 +1,5 @@
+import { ApiErrors } from '../../common/api-errors.decorator';
+import { ErrorCode } from '../../common/error-code';
 import {
   Body,
   Controller,
@@ -10,16 +12,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtGuard } from '../auth/guard/jwt.guard';
@@ -63,8 +62,13 @@ export class UserController {
     type: GetUserResponseDto,
     isArray: true,
   })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
-  @ApiBadRequestResponse({ description: '쿼리 유효성 검사 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.FORBIDDEN_ROLE,
+  )
   async findAll(
     @Query() query: GetUsersRequestDto,
   ): Promise<GetUserResponseDto[]> {
@@ -81,8 +85,14 @@ export class UserController {
   })
   @ApiParam({ name: 'id', description: '사용자 ID', example: '1' })
   @ApiOkResponse({ description: '조회 성공', type: GetUserResponseDto })
-  @ApiNotFoundResponse({ description: '사용자를 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.FORBIDDEN_ROLE,
+    ErrorCode.USER_NOT_FOUND,
+  )
   async findOne(
     @Param() params: GetUserRequestDto,
   ): Promise<GetUserResponseDto> {
@@ -102,8 +112,15 @@ export class UserController {
     description: '생성 성공',
     type: CreateUserResponseDto,
   })
-  @ApiBadRequestResponse({ description: '유효성 검사 실패 또는 이메일 중복' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.FORBIDDEN_ROLE,
+    ErrorCode.EMAIL_ALREADY_EXISTS,
+    ErrorCode.INVITE_CODE_INVALID,
+  )
   async create(
     @Body() body: CreateUserRequestDto,
   ): Promise<CreateUserResponseDto> {
@@ -121,8 +138,15 @@ export class UserController {
   @ApiParam({ name: 'id', description: '사용자 ID', example: '1' })
   @ApiBody({ type: UpdateUserRequestDto })
   @ApiOkResponse({ description: '수정 성공', type: UpdateUserResponseDto })
-  @ApiNotFoundResponse({ description: '사용자를 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.FORBIDDEN_ROLE,
+    ErrorCode.USER_NOT_FOUND,
+    ErrorCode.QUESTION_SERIES_NOT_FOUND,
+  )
   async update(
     @Param() params: GetUserRequestDto,
     @Body() body: UpdateUserRequestDto,
@@ -140,8 +164,14 @@ export class UserController {
   })
   @ApiParam({ name: 'id', description: '사용자 ID', example: '1' })
   @ApiOkResponse({ description: '삭제 성공', type: DeleteUserResponseDto })
-  @ApiNotFoundResponse({ description: '사용자를 찾을 수 없음' })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.FORBIDDEN_ROLE,
+    ErrorCode.USER_NOT_FOUND,
+  )
   async remove(
     @Param() params: GetUserRequestDto,
   ): Promise<DeleteUserResponseDto> {

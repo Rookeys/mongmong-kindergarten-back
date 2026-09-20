@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ErrorCode } from '../../common/error-code';
 import { DataSource } from 'typeorm';
 import { Item } from '../item/entities/item.entity';
 import { ItemType } from '../item/enums/item-type.enum';
@@ -194,7 +194,11 @@ describe('CharacterService.purchaseItem', () => {
 
     await expect(
       service.purchaseItem('u1', { itemId: item.id }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toMatchObject({
+      code: ErrorCode.REWARD_INSUFFICIENT,
+      details: expect.objectContaining({ required: expect.any(Number) }),
+      message: expect.stringContaining('필요'),
+    });
     expect((manager.users.get('u1') as User).rewardCount).toBe(10);
   });
 
@@ -207,7 +211,7 @@ describe('CharacterService.purchaseItem', () => {
 
     await expect(
       service.purchaseItem('u1', { itemId: item.id }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toMatchObject({ code: ErrorCode.CHARACTER_ITEM_ALREADY_OWNED });
   });
 });
 
@@ -275,12 +279,12 @@ describe('CharacterService.graduate', () => {
     ).toHaveLength(1);
   });
 
-  it('졸업 가능한 캐릭터가 없으면 NotFoundException을 던진다', async () => {
+  it('졸업 가능한 캐릭터가 없으면 예외를 던진다', async () => {
     const manager = new FakeManager();
     const service = buildService(manager);
 
-    await expect(service.graduate('u1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(service.graduate('u1')).rejects.toMatchObject({
+      code: ErrorCode.CHARACTER_NOT_FOUND,
+    });
   });
 });

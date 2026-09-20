@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { ErrorCode } from '../../common/error-code';
 import { DataSource } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { AD_REWARDED_AMOUNT } from './constants/reward-amount.constants';
@@ -109,6 +109,6 @@ describe('RewardService.recordAdView', () => {
 
     await expect(
       service.recordAdView('u1', { adType: AdType.REWARDED }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toMatchObject({ code: ErrorCode.AD_ALREADY_VIEWED_TODAY });
   });
 });
