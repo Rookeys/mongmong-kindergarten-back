@@ -45,15 +45,4 @@ export class KakaoAuthService {
   extractEmail(kakaoUserProfile: KakaoUserProfile): string | null {
     return kakaoUserProfile.kakao_account?.email ?? null;
   }
-
-  /**
-   * 카카오 프로필에서 닉네임을 추출한다.
-   */
-  extractNickname(kakaoUserProfile: KakaoUserProfile): string | null {
-    return (
-      kakaoUserProfile.kakao_account?.profile?.nickname ??
-      kakaoUserProfile.properties?.nickname ??
-      null
-    );
-  }
 }

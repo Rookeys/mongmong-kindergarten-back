@@ -14,6 +14,8 @@ import { JwtGuard } from '../auth/guard/jwt.guard';
 import {
   CreateAdViewRequestDto,
   CreateAdViewResponseDto,
+  CreateAttendanceResponseDto,
+  GetAttendanceResponseDto,
   GetRewardHistoryResponseDto,
 } from './dto';
 import { RewardService } from './reward.service';
@@ -61,7 +63,7 @@ export class RewardController {
   @ApiOperation({
     summary: '광고 시청 기록 및 리워드 지급',
     description:
-      'rewarded 광고는 하루 1회 리워드가 지급된다. 출석체크도 이 API(rewarded)로 처리한다.',
+      '광고를 볼 때마다 꿈조각 3개가 지급된다(횟수 제한 없음). 출석체크는 POST /rewards/attendance를 쓴다.',
   })
   @ApiBody({ type: CreateAdViewRequestDto })
   @ApiCreatedResponse({
@@ -73,7 +75,6 @@ export class RewardController {
     ErrorCode.AUTH_TOKEN_MISSING,
     ErrorCode.AUTH_TOKEN_EXPIRED,
     ErrorCode.AUTH_TOKEN_INVALID,
-    ErrorCode.AD_ALREADY_VIEWED_TODAY,
     ErrorCode.USER_NOT_FOUND,
   )
   async recordAdView(
@@ -81,5 +82,41 @@ export class RewardController {
     @Body() dto: CreateAdViewRequestDto,
   ): Promise<CreateAdViewResponseDto> {
     return this.rewardService.recordAdView(request.user.sub, dto);
+  }
+
+  @Get('attendance')
+  @ApiOperation({ summary: '오늘 출석체크 여부 조회' })
+  @ApiOkResponse({ description: '조회 성공', type: GetAttendanceResponseDto })
+  @ApiErrors(
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+  )
+  async findTodayAttendance(
+    @Req() request: JwtAuthRequest,
+  ): Promise<GetAttendanceResponseDto> {
+    return this.rewardService.findTodayAttendance(request.user.sub);
+  }
+
+  @Post('attendance')
+  @ApiOperation({
+    summary: '출석체크 및 리워드 지급',
+    description: '하루(KST) 1회 꿈조각 1개가 지급된다.',
+  })
+  @ApiCreatedResponse({
+    description: '출석 성공',
+    type: CreateAttendanceResponseDto,
+  })
+  @ApiErrors(
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.ATTENDANCE_ALREADY_CHECKED,
+    ErrorCode.USER_NOT_FOUND,
+  )
+  async checkAttendance(
+    @Req() request: JwtAuthRequest,
+  ): Promise<CreateAttendanceResponseDto> {
+    return this.rewardService.checkAttendance(request.user.sub);
   }
 }

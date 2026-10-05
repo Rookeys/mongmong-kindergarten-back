@@ -5,6 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { User } from './user.entity';
 
@@ -12,6 +13,7 @@ import { User } from './user.entity';
  * 사용자 초대 엔티티 (USER_INVITE)
  */
 @Entity('user_invite')
+@Unique(['inviteeUserId'])
 export class UserInvite {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'user_invite_id' })
   id!: string;

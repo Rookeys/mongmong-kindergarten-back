@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
+import { NICKNAME_PATTERN } from '../../constants/nickname.constants';
 import { UserStatus } from '../../enums/user-status.enum';
 
 /**
@@ -7,13 +14,14 @@ import { UserStatus } from '../../enums/user-status.enum';
  */
 export class UpdateUserRequestDto {
   @ApiPropertyOptional({
-    description: '닉네임',
+    description: '닉네임 (2~8자, 한글·영문 소문자·숫자)',
     example: '새닉네임',
-    maxLength: 50,
+    minLength: 2,
+    maxLength: 8,
   })
   @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @Matches(NICKNAME_PATTERN)
   nickname?: string;
 
   @ApiPropertyOptional({
@@ -31,6 +39,7 @@ export class UpdateUserRequestDto {
     example: 'AB12CD34',
     maxLength: 20,
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()

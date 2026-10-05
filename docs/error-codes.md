@@ -54,18 +54,20 @@
 | `EMAIL_ALREADY_EXISTS` | 409 | 이미 존재하는 이메일입니다. |
 | `INVITE_CODE_INVALID` | 400 | 유효하지 않은 친구 초대 코드입니다. |
 | `QUESTION_SERIES_NOT_FOUND` | 404 | 존재하지 않는 질문 시리즈입니다. |
-| `QUESTION_SERIES_NOT_SELECTED` | 400 | 질문 시리즈를 먼저 선택해주세요. |
-| `QUESTION_EMPTY_SERIES` | 404 | 시리즈에 등록된 질문이 없습니다. |
+| `QUESTION_NOT_FOUND` | 404 | 해당 날짜의 질문을 찾을 수 없습니다. |
+| `DATE_IN_FUTURE` | 400 | 미래 날짜는 사용할 수 없습니다. |
 | `QUESTION_CONTENT_NOT_FOUND` | 404 | 질문 콘텐츠를 찾을 수 없습니다. |
 | `LETTER_NOT_FOUND` | 404 | 일지를 찾을 수 없습니다. |
 | `LETTER_REPORT_OWN_LETTER` | 403 | 본인 일지는 신고할 수 없습니다. |
+| `LETTER_ALREADY_EXISTS` | 409 | 해당 날짜에는 이미 일지를 작성했습니다. |
+| `LETTER_EDIT_EXPIRED` | 403 | 일지 내용은 작성한 당일에만 수정할 수 있습니다. |
 | `AI_REPLY_NOT_FOUND` | 404 | AI 답장을 찾을 수 없습니다. |
 | `ITEM_NOT_FOUND` | 404 | 아이템을 찾을 수 없습니다. |
 | `CHARACTER_ITEM_ALREADY_OWNED` | 409 | 이미 보유한 아이템입니다. |
 | `CHARACTER_ITEM_NOT_OWNED` | 404 | 보유한 아이템을 찾을 수 없습니다. |
 | `REWARD_INSUFFICIENT` | 400 | 리워드(꿈조각)가 부족합니다. |
 | `CHARACTER_NOT_FOUND` | 404 | 졸업 가능한 캐릭터를 찾을 수 없습니다. |
-| `AD_ALREADY_VIEWED_TODAY` | 409 | 오늘은 이미 시청한 광고입니다. |
+| `ATTENDANCE_ALREADY_CHECKED` | 409 | 오늘은 이미 출석체크를 했습니다. |
 | `NOTICE_NOT_FOUND` | 404 | 공지를 찾을 수 없습니다. |
 
 ## message / details 규칙
@@ -75,7 +77,7 @@
   - `AUTH_SOCIAL_ACCOUNT`: "카카오로 가입된 계정입니다. 카카오 로그인을 이용해주세요." / details `{loginType}`
   - `AUTH_ACCOUNT_INACTIVE`: 탈퇴 → "탈퇴한 계정입니다." / 비활성 → "비활성화된 계정입니다. 고객센터에 문의해주세요." / details `{status}`
   - `CHARACTER_ITEM_ALREADY_OWNED`: "이미 보유한 아이템입니다. (아이템명)" / details `{itemId}`
-  - `AD_ALREADY_VIEWED_TODAY`: details `{adType}`, `INVITE_CODE_INVALID`: details `{friendInviteCode}`
+  - `INVITE_CODE_INVALID`: details `{friendInviteCode}`, `LETTER_ALREADY_EXISTS`: details `{letterDate}`, `QUESTION_NOT_FOUND`: details `{date}`
   - `*_NOT_FOUND`(사용자/일지/공지/아이템/AI답장/시리즈 등): "일지를 찾을 수 없습니다. (letterId: 12)" / details `{letterId}` 등 대상 식별값
   - `VALIDATION_FAILED`: "요청 값이 올바르지 않습니다. (email: 이메일 형식이 올바르지 않습니다. 외 2건)" + `errors[]` 전체 목록
 
@@ -133,11 +135,20 @@
 ### GET /letters
 `VALIDATION_FAILED`(400)
 
+### GET /letters/public
+`VALIDATION_FAILED`(400)
+
+### GET /letters/calendar
+`VALIDATION_FAILED`(400)
+
+### PATCH /letters/:id
+`VALIDATION_FAILED`(400), `LETTER_NOT_FOUND`(404), `LETTER_EDIT_EXPIRED`(403)
+
 ### GET /letters/:id
 `VALIDATION_FAILED`(400), `LETTER_NOT_FOUND`(404)
 
 ### POST /letters
-`VALIDATION_FAILED`(400), `USER_NOT_FOUND`(404), `QUESTION_SERIES_NOT_SELECTED`(400)
+`VALIDATION_FAILED`(400), `DATE_IN_FUTURE`(400), `USER_NOT_FOUND`(404), `LETTER_ALREADY_EXISTS`(409), `QUESTION_SERIES_NOT_FOUND`(404), `QUESTION_NOT_FOUND`(404), `REWARD_INSUFFICIENT`(400)
 
 ### GET /letters/:id/ai-replies
 `VALIDATION_FAILED`(400), `LETTER_NOT_FOUND`(404)
@@ -166,14 +177,26 @@
 ### GET /questions/series
 -
 
-### GET /questions/today
-`VALIDATION_FAILED`(400), `USER_NOT_FOUND`(404), `QUESTION_SERIES_NOT_SELECTED`(400), `QUESTION_EMPTY_SERIES`(404), `QUESTION_CONTENT_NOT_FOUND`(404)
+### GET /questions/guest/today (인증 불필요)
+`VALIDATION_FAILED`(400), `QUESTION_SERIES_NOT_FOUND`(404), `QUESTION_NOT_FOUND`(404), `QUESTION_CONTENT_NOT_FOUND`(404)
+
+### GET /questions/daily
+`VALIDATION_FAILED`(400), `DATE_IN_FUTURE`(400), `USER_NOT_FOUND`(404), `QUESTION_SERIES_NOT_FOUND`(404), `QUESTION_NOT_FOUND`(404), `QUESTION_CONTENT_NOT_FOUND`(404)
+
+### GET /questions
+`VALIDATION_FAILED`(400), `USER_NOT_FOUND`(404), `QUESTION_SERIES_NOT_FOUND`(404), `QUESTION_CONTENT_NOT_FOUND`(404)
 
 ### GET /rewards/history
 `VALIDATION_FAILED`(400)
 
 ### POST /rewards/ad-view
-`VALIDATION_FAILED`(400), `AD_ALREADY_VIEWED_TODAY`(409), `USER_NOT_FOUND`(404)
+`VALIDATION_FAILED`(400), `USER_NOT_FOUND`(404)
+
+### GET /rewards/attendance
+-
+
+### POST /rewards/attendance
+`ATTENDANCE_ALREADY_CHECKED`(409), `USER_NOT_FOUND`(404)
 
 ### GET /users
 `VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403)

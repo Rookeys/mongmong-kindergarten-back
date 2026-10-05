@@ -4,6 +4,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Patch,
   Post,
   Req,
@@ -18,7 +20,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { GetUserResponseDto } from '../user/dto/get/get-user-response.dto';
-import { UpdateUserRequestDto } from '../user/dto/patch/update-user-request.dto';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
 import { AuthTokenResponseDto } from './dto/auth-token-response.dto';
@@ -27,6 +28,7 @@ import { KakaoLoginRequestDto } from './dto/kakao-login-request.dto';
 import { LoginRequestDto } from './dto/login-request.dto';
 import { RegisterRequestDto } from './dto/register-request.dto';
 import { RegisterResponseDto } from './dto/register-response.dto';
+import { UpdateMeRequestDto } from './dto/update-me-request.dto';
 import { JwtGuard } from './guard/jwt.guard';
 import { LocalGuard } from './guard/local.guard';
 
@@ -53,6 +55,7 @@ export class AuthController {
    * 로컬 로그인
    */
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(LocalGuard)
   @ApiOperation({ summary: '로컬 로그인' })
   @ApiBody({ type: LoginRequestDto })
@@ -97,6 +100,7 @@ export class AuthController {
    * 카카오 로그인
    */
   @Post('kakao')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '카카오 로그인',
     description: '프론트에서 받은 kakaoAccessToken으로 로그인/가입합니다.',
@@ -140,7 +144,7 @@ export class AuthController {
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '내 프로필 수정' })
-  @ApiBody({ type: UpdateUserRequestDto })
+  @ApiBody({ type: UpdateMeRequestDto })
   @ApiOkResponse({ description: '수정 성공', type: GetUserResponseDto })
   @ApiErrors(
     ErrorCode.VALIDATION_FAILED,
@@ -152,7 +156,7 @@ export class AuthController {
   )
   async updateMe(
     @Req() request: JwtAuthRequest,
-    @Body() dto: UpdateUserRequestDto,
+    @Body() dto: UpdateMeRequestDto,
   ): Promise<GetUserResponseDto> {
     return this.userService.update(request.user.sub, dto);
   }

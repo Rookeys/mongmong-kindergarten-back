@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { Question } from './question.entity';
 
@@ -13,6 +14,7 @@ import { Question } from './question.entity';
  * 질문 다국어 콘텐츠 엔티티 (QUESTION_CONTENT)
  */
 @Entity('question_content')
+@Unique(['questionId', 'localeType'])
 export class QuestionContent {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'question_content_id' })
   id!: string;

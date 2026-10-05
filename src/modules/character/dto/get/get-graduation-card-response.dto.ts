@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * 졸업 카드 응답 DTO
@@ -21,17 +21,19 @@ export class GetGraduationCardResponseDto {
   @ApiProperty({ description: '졸업 시점 레벨', example: 5 })
   levelSnapshot!: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '졸업 시점 장착 아이템 스냅샷',
     example: null,
     nullable: true,
+    type: Object,
   })
   equippedItemsSnapshot!: Record<string, unknown> | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '카드 이미지 URL',
     example: null,
     nullable: true,
+    type: String,
   })
   cardImageUrl!: string | null;
 }

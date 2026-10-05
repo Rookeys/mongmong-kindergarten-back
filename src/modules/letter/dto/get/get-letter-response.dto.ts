@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { LocaleType } from '../../../../common/enums/locale-type.enum';
 
 /**
@@ -11,16 +11,20 @@ export class GetLetterResponseDto {
   @ApiProperty({ description: '질문 ID', example: '1' })
   questionId!: string;
 
+  @ApiProperty({ description: '일지 날짜 (KST)', example: '2026-05-05' })
+  letterDate!: string;
+
   @ApiProperty({
     description: '답변 내용',
     example: '오늘은 친구랑 블록 놀이를 해서 정말 즐거웠어요.',
   })
   answer!: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '오늘의 기분 번호',
     example: 1,
     nullable: true,
+    type: Number,
   })
   moodNumber!: number | null;
 

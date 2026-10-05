@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
-import { Question } from '../question/entities/question.entity';
+import { QuestionModule } from '../question/question.module';
 import { RewardHistory } from '../reward/entities/reward-history.entity';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
@@ -25,10 +25,10 @@ import { LetterService } from './letter.service';
       LetterReport,
       User,
       UserInvite,
-      Question,
       RewardHistory,
     ]),
     AuthModule,
+    QuestionModule,
   ],
   controllers: [LetterController, AiReplyController],
   providers: [LetterService],

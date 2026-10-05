@@ -7,8 +7,7 @@ import { AdType } from '../../enums/ad-type.enum';
  */
 export class CreateAdViewRequestDto {
   @ApiProperty({
-    description:
-      '광고 유형 (rewarded만 리워드 지급, interstitial은 시청 기록만 남김)',
+    description: '광고 유형 (기록용, 유형과 무관하게 리워드 지급)',
     enum: AdType,
     enumName: 'AdType',
     example: AdType.REWARDED,

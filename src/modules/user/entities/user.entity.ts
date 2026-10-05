@@ -4,7 +4,6 @@ import { LetterReport } from '../../letter/entities/letter-report.entity';
 import { Letter } from '../../letter/entities/letter.entity';
 import { Character } from '../../character/entities/character.entity';
 import { GraduationCard } from '../../character/entities/graduation-card.entity';
-import { Question } from '../../question/entities/question.entity';
 import { QuestionSeries } from '../../question/entities/question-series.entity';
 import { AdViewLog } from '../../reward/entities/ad-view-log.entity';
 import { RewardHistory } from '../../reward/entities/reward-history.entity';
@@ -50,8 +49,9 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: true })
   password!: string | null;
 
-  @Column({ type: 'varchar', length: 50 })
-  nickname!: string;
+  /** 카카오 가입 직후에는 null이고 온보딩(이름 설정)에서 채운다 */
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  nickname!: string | null;
 
   @Column({ name: 'login_type', type: 'varchar', length: 20 })
   loginType!: LoginType;
@@ -91,13 +91,6 @@ export class User {
 
   @Column({ name: 'last_login_date', type: 'timestamp', nullable: true })
   lastLoginDate!: Date | null;
-
-  @Column({ name: 'current_question_id', type: 'bigint', nullable: true })
-  currentQuestionId!: string | null;
-
-  @ManyToOne(() => Question, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'current_question_id' })
-  currentQuestion!: Question | null;
 
   @OneToMany(() => UserSetting, (userSetting: UserSetting) => userSetting.user)
   settings!: UserSetting[];

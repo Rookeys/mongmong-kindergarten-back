@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { LoginType } from '../../enums/login-type.enum';
 import { UserRole } from '../../enums/user-role.enum';
 import { UserStatus } from '../../enums/user-status.enum';
@@ -14,8 +14,13 @@ export class GetUserResponseDto {
   @ApiProperty({ description: '이메일', example: 'user@example.com' })
   email!: string;
 
-  @ApiProperty({ description: '닉네임', example: '몽몽이' })
-  nickname!: string;
+  @ApiProperty({
+    description: '닉네임 (null이면 이름 설정 온보딩 필요)',
+    example: '몽몽이',
+    nullable: true,
+    type: String,
+  })
+  nickname!: string | null;
 
   @ApiProperty({
     description: '로그인 유형',
@@ -25,10 +30,11 @@ export class GetUserResponseDto {
   })
   loginType!: LoginType;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '소셜 제공자 사용자 ID (로컬은 null)',
     example: null,
     nullable: true,
+    type: String,
   })
   providerId!: string | null;
 
@@ -41,10 +47,11 @@ export class GetUserResponseDto {
   @ApiProperty({ description: '내 초대 코드', example: 'AB12CD34' })
   myInviteCode!: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '가입 시 입력한 친구 초대 코드',
     example: null,
     nullable: true,
+    type: String,
   })
   friendInviteCode!: string | null;
 
@@ -64,7 +71,7 @@ export class GetUserResponseDto {
   })
   role!: UserRole;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '마지막 로그인 일시',
     type: String,
     format: 'date-time',
@@ -73,21 +80,15 @@ export class GetUserResponseDto {
   })
   lastLoginDate!: Date | null;
 
-  @ApiPropertyOptional({
-    description: '현재 진행 중 질문 ID',
-    example: null,
-    nullable: true,
-  })
-  currentQuestionId!: string | null;
-
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '선택한 질문 시리즈 ID',
     example: null,
     nullable: true,
+    type: String,
   })
   questionSeriesId!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '탈퇴 요청 일시',
     type: String,
     format: 'date-time',
