@@ -4,7 +4,6 @@ import { LetterReport } from '../../letter/entities/letter-report.entity';
 import { Letter } from '../../letter/entities/letter.entity';
 import { Character } from '../../character/entities/character.entity';
 import { GraduationCard } from '../../character/entities/graduation-card.entity';
-import { Question } from '../../question/entities/question.entity';
 import { QuestionSeries } from '../../question/entities/question-series.entity';
 import { AdViewLog } from '../../reward/entities/ad-view-log.entity';
 import { RewardHistory } from '../../reward/entities/reward-history.entity';
@@ -92,13 +91,6 @@ export class User {
 
   @Column({ name: 'last_login_date', type: 'timestamp', nullable: true })
   lastLoginDate!: Date | null;
-
-  @Column({ name: 'current_question_id', type: 'bigint', nullable: true })
-  currentQuestionId!: string | null;
-
-  @ManyToOne(() => Question, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'current_question_id' })
-  currentQuestion!: Question | null;
 
   @OneToMany(() => UserSetting, (userSetting: UserSetting) => userSetting.user)
   settings!: UserSetting[];

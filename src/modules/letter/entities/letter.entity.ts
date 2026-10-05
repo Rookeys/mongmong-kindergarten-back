@@ -5,11 +5,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 import { AiReply } from './ai-reply.entity';
 import { LetterReaction } from './letter-reaction.entity';
@@ -19,6 +21,8 @@ import { LetterReport } from './letter-report.entity';
  * 편지 엔티티 (LETTER)
  */
 @Entity('letter')
+@Unique(['userId', 'letterDate'])
+@Index(['questionId'])
 export class Letter {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'letter_id' })
   id!: string;
@@ -36,6 +40,10 @@ export class Letter {
   @ManyToOne(() => Question, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'question_id' })
   question!: Question;
+
+  /** 일지가 속한 날짜(KST). 질문은 이 날짜로 정해지고 하루에 한 통만 쓸 수 있다 */
+  @Column({ name: 'letter_date', type: 'date' })
+  letterDate!: string;
 
   @Column({ type: 'text' })
   answer!: string;

@@ -7,6 +7,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 import { QuestionContent } from './question-content.entity';
 import { QuestionSeries } from './question-series.entity';
@@ -15,6 +16,7 @@ import { QuestionSeries } from './question-series.entity';
  * 질문 엔티티 (QUESTION)
  */
 @Entity('question')
+@Unique(['questionSeriesId', 'orderNum'])
 export class Question {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'question_id' })
   id!: string;
@@ -30,6 +32,7 @@ export class Question {
   @JoinColumn({ name: 'question_series_id' })
   questionSeries!: QuestionSeries;
 
+  /** 달력 날짜 순번: 1월 1일 = 1 ~ 12월 31일 = 365 */
   @Column({ name: 'order_num', type: 'int' })
   orderNum!: number;
 

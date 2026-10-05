@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { LetterReportReasonType } from '../../enums/letter-report-reason-type.enum';
 import { LetterReportStatus } from '../../enums/letter-report-status.enum';
 
@@ -20,10 +20,11 @@ export class GetLetterReportResponseDto {
   })
   reasonType!: LetterReportReasonType;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '신고 상세 사유',
     example: null,
     nullable: true,
+    type: String,
   })
   reasonDetail!: string | null;
 

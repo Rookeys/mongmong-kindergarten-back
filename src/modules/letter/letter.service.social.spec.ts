@@ -26,6 +26,7 @@ function buildService(repos: {
     (repos.reaction ?? createRepoMock()) as never,
     (repos.report ?? createRepoMock()) as never,
     {} as never,
+    {} as never,
   );
 }
 
@@ -191,5 +192,91 @@ describe('LetterService.markAiReplyAsRead', () => {
 
     expect(result.isRead).toBe(true);
     expect(aiReplyRepo.save).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('LetterService.update', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  function buildLetter(createdDate: Date) {
+    return {
+      id: 'l1',
+      userId: 'owner',
+      answer: '원래 내용',
+      moodNumber: null,
+      isPrivate: true,
+      isPrivateSns: true,
+      createdDate,
+    };
+  }
+
+  it('작성 당일에는 본문을 수정할 수 있다', async () => {
+    const letterRepo = createRepoMock();
+    letterRepo.findOneBy.mockResolvedValue(buildLetter(new Date()));
+    letterRepo.save.mockImplementation((payload) => payload);
+    const service = buildService({ letter: letterRepo });
+
+    const result = await service.update('owner', 'l1', { answer: '고친 내용' });
+
+    expect(result.answer).toBe('고친 내용');
+    expect(result.isPrivate).toBe(true);
+  });
+
+  it('작성 다음 날부터는 본문을 수정할 수 없다', async () => {
+    const letterRepo = createRepoMock();
+    letterRepo.findOneBy.mockResolvedValue(
+      buildLetter(new Date(Date.now() - DAY_MS)),
+    );
+    const service = buildService({ letter: letterRepo });
+
+    await expect(
+      service.update('owner', 'l1', { answer: '고친 내용' }),
+    ).rejects.toMatchObject({ code: ErrorCode.LETTER_EDIT_EXPIRED });
+    expect(letterRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('공개 여부는 날짜가 지나도 바꿀 수 있고 본문은 그대로다', async () => {
+    const letterRepo = createRepoMock();
+    letterRepo.findOneBy.mockResolvedValue(
+      buildLetter(new Date(Date.now() - DAY_MS)),
+    );
+    letterRepo.save.mockImplementation((payload) => payload);
+    const service = buildService({ letter: letterRepo });
+
+    const result = await service.update('owner', 'l1', { isPrivate: false });
+
+    expect(result.isPrivate).toBe(false);
+    expect(result.answer).toBe('원래 내용');
+  });
+
+  it('남의 일지는 찾을 수 없다', async () => {
+    const letterRepo = createRepoMock();
+    letterRepo.findOneBy.mockResolvedValue(null);
+    const service = buildService({ letter: letterRepo });
+
+    await expect(
+      service.update('other', 'l1', { isPrivate: false }),
+    ).rejects.toMatchObject({ code: ErrorCode.LETTER_NOT_FOUND });
+  });
+});
+
+describe('LetterService.findCalendar', () => {
+  it('일지가 있는 날짜를 날짜·일지 ID·기분으로 내려준다', async () => {
+    const letterRepo = createRepoMock();
+    letterRepo.find.mockResolvedValue([
+      { id: 'l2', moodNumber: 2, letterDate: '2026-05-05' },
+      { id: 'l3', moodNumber: null, letterDate: '2026-05-06' },
+    ]);
+    const service = buildService({ letter: letterRepo });
+
+    const result = await service.findCalendar('owner', {
+      year: 2026,
+      month: 5,
+    });
+
+    expect(result).toEqual([
+      { date: '2026-05-05', letterId: 'l2', moodNumber: 2 },
+      { date: '2026-05-06', letterId: 'l3', moodNumber: null },
+    ]);
   });
 });

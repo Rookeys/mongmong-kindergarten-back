@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { Letter } from '../letter/entities/letter.entity';
 import { User } from '../user/entities/user.entity';
 import { Question } from './entities/question.entity';
 import { QuestionContent } from './entities/question-content.entity';
@@ -13,11 +14,17 @@ import { QuestionService } from './question.service';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([QuestionSeries, Question, QuestionContent, User]),
+    TypeOrmModule.forFeature([
+      QuestionSeries,
+      Question,
+      QuestionContent,
+      User,
+      Letter,
+    ]),
     AuthModule,
   ],
   controllers: [QuestionController],
   providers: [QuestionService],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, QuestionService],
 })
 export class QuestionModule {}

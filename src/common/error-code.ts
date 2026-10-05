@@ -37,13 +37,15 @@ export enum ErrorCode {
 
   // 질문
   QUESTION_SERIES_NOT_FOUND = 'QUESTION_SERIES_NOT_FOUND',
-  QUESTION_SERIES_NOT_SELECTED = 'QUESTION_SERIES_NOT_SELECTED',
-  QUESTION_EMPTY_SERIES = 'QUESTION_EMPTY_SERIES',
+  QUESTION_NOT_FOUND = 'QUESTION_NOT_FOUND',
   QUESTION_CONTENT_NOT_FOUND = 'QUESTION_CONTENT_NOT_FOUND',
+  DATE_IN_FUTURE = 'DATE_IN_FUTURE',
 
   // 일지/AI 답장
   LETTER_NOT_FOUND = 'LETTER_NOT_FOUND',
   LETTER_REPORT_OWN_LETTER = 'LETTER_REPORT_OWN_LETTER',
+  LETTER_ALREADY_EXISTS = 'LETTER_ALREADY_EXISTS',
+  LETTER_EDIT_EXPIRED = 'LETTER_EDIT_EXPIRED',
   AI_REPLY_NOT_FOUND = 'AI_REPLY_NOT_FOUND',
 
   // 캐릭터/아이템
@@ -167,13 +169,13 @@ export const ERROR_META: Record<
     status: HttpStatus.NOT_FOUND,
     message: '존재하지 않는 질문 시리즈입니다.',
   },
-  [ErrorCode.QUESTION_SERIES_NOT_SELECTED]: {
-    status: HttpStatus.BAD_REQUEST,
-    message: '질문 시리즈를 먼저 선택해주세요.',
-  },
-  [ErrorCode.QUESTION_EMPTY_SERIES]: {
+  [ErrorCode.QUESTION_NOT_FOUND]: {
     status: HttpStatus.NOT_FOUND,
-    message: '시리즈에 등록된 질문이 없습니다.',
+    message: '해당 날짜의 질문을 찾을 수 없습니다.',
+  },
+  [ErrorCode.DATE_IN_FUTURE]: {
+    status: HttpStatus.BAD_REQUEST,
+    message: '미래 날짜는 사용할 수 없습니다.',
   },
   [ErrorCode.QUESTION_CONTENT_NOT_FOUND]: {
     status: HttpStatus.NOT_FOUND,
@@ -187,6 +189,14 @@ export const ERROR_META: Record<
   [ErrorCode.LETTER_REPORT_OWN_LETTER]: {
     status: HttpStatus.FORBIDDEN,
     message: '본인 일지는 신고할 수 없습니다.',
+  },
+  [ErrorCode.LETTER_ALREADY_EXISTS]: {
+    status: HttpStatus.CONFLICT,
+    message: '해당 날짜에는 이미 일지를 작성했습니다.',
+  },
+  [ErrorCode.LETTER_EDIT_EXPIRED]: {
+    status: HttpStatus.FORBIDDEN,
+    message: '일지 내용은 작성한 당일에만 수정할 수 있습니다.',
   },
   [ErrorCode.AI_REPLY_NOT_FOUND]: {
     status: HttpStatus.NOT_FOUND,
@@ -216,9 +226,8 @@ export const ERROR_META: Record<
 
   [ErrorCode.ATTENDANCE_ALREADY_CHECKED]: {
     status: HttpStatus.CONFLICT,
-    message: '오늘은 이미 시청한 광고입니다.',
+    message: '오늘은 이미 출석체크를 했습니다.',
   },
-
   [ErrorCode.NOTICE_NOT_FOUND]: {
     status: HttpStatus.NOT_FOUND,
     message: '공지를 찾을 수 없습니다.',

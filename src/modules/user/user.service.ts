@@ -121,7 +121,6 @@ export class UserService {
         deletedRequestAt: null,
         lastLoginDate: null,
         questionSeriesId: null,
-        currentQuestionId: null,
       });
       await manager.save(UserSetting, this.buildDefaultUserSetting(user));
       return user;
@@ -173,7 +172,6 @@ export class UserService {
       status: user.status,
       role: user.role,
       lastLoginDate: user.lastLoginDate,
-      currentQuestionId: user.currentQuestionId,
       questionSeriesId: user.questionSeriesId,
       deletedRequestAt: user.deletedRequestAt,
       createdDate: user.createdDate,
@@ -228,7 +226,6 @@ export class UserService {
       deletedRequestAt: null,
       lastLoginDate: null,
       questionSeriesId: null,
-      currentQuestionId: null,
     };
   }
 

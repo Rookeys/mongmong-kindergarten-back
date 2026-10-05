@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { LoginType } from '../../enums/login-type.enum';
 import { UserRole } from '../../enums/user-role.enum';
 import { UserStatus } from '../../enums/user-status.enum';
@@ -80,22 +80,15 @@ export class GetUserResponseDto {
   })
   lastLoginDate!: Date | null;
 
-  @ApiPropertyOptional({
-    description: '현재 진행 중 질문 ID',
-    example: null,
-    nullable: true,
-    type: String,
-  })
-  currentQuestionId!: string | null;
-
   @ApiProperty({
     description: '선택한 질문 시리즈 ID',
     example: null,
     nullable: true,
+    type: String,
   })
   questionSeriesId!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '탈퇴 요청 일시',
     type: String,
     format: 'date-time',
