@@ -128,12 +128,8 @@ export class AuthService {
     providerId: string,
   ): Promise<User> {
     const email = this.resolveKakaoEmail(kakaoUserProfile, providerId);
-    const nickname =
-      this.kakaoAuthService.extractNickname(kakaoUserProfile) ??
-      `카카오유저${providerId}`;
     return this.userService.createSocialUser({
       email,
-      nickname,
       loginType: LoginType.KAKAO,
       providerId,
     });
@@ -154,11 +150,7 @@ export class AuthService {
     user: User,
     kakaoUserProfile: KakaoUserProfile,
   ): Promise<User> {
-    const nickname = this.kakaoAuthService.extractNickname(kakaoUserProfile);
     const email = this.kakaoAuthService.extractEmail(kakaoUserProfile);
-    if (nickname) {
-      user.nickname = nickname;
-    }
     if (email && email !== user.email) {
       const emailOwner = await this.userRepository.findOneBy({ email });
       if (!emailOwner || emailOwner.id === user.id) {

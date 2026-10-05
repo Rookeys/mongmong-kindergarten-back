@@ -101,7 +101,6 @@ export class UserService {
    */
   async createSocialUser(input: {
     email: string;
-    nickname: string;
     loginType: LoginType;
     providerId: string;
   }): Promise<User> {
@@ -110,7 +109,7 @@ export class UserService {
       const user = await manager.save(User, {
         email: input.email,
         password: null,
-        nickname: input.nickname,
+        nickname: null,
         loginType: input.loginType,
         providerId: input.providerId,
         rewardCount: 0,

@@ -50,8 +50,9 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: true })
   password!: string | null;
 
-  @Column({ type: 'varchar', length: 50 })
-  nickname!: string;
+  /** 카카오 가입 직후에는 null이고 온보딩(이름 설정)에서 채운다 */
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  nickname!: string | null;
 
   @Column({ name: 'login_type', type: 'varchar', length: 20 })
   loginType!: LoginType;
