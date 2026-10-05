@@ -50,7 +50,15 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  // 클라이언트 코드젠 메서드명을 짧게: LetterController.findAll → letterFindAll
+  const documentFactory = () =>
+    SwaggerModule.createDocument(app, config, {
+      operationIdFactory: (controllerKey: string, methodKey: string) =>
+        controllerKey.charAt(0).toLowerCase() +
+        controllerKey.slice(1).replace(/Controller$/, '') +
+        methodKey.charAt(0).toUpperCase() +
+        methodKey.slice(1),
+    });
 
   // 문서 UI는 접두사 없이 /api-docs 유지 (스펙 내 경로는 전역 접두사 반영)
   SwaggerModule.setup('api-docs', app, documentFactory, {

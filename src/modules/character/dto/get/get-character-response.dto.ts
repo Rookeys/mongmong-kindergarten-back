@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { CharacterStatus } from '../../enums/character-status.enum';
 
 /**
@@ -22,7 +22,7 @@ export class GetCharacterResponseDto {
   })
   status!: CharacterStatus;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '졸업 일시',
     type: String,
     format: 'date-time',
@@ -31,7 +31,7 @@ export class GetCharacterResponseDto {
   })
   graduatedAt!: Date | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '마지막 물주기 일시',
     type: String,
     format: 'date-time',
