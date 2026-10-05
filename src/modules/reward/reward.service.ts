@@ -2,17 +2,28 @@ import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/app-exception';
 import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  FindOptionsWhere,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
+import { toKstDateString } from '../../common/utils/to-kst-date-string.util';
 import { User } from '../user/entities/user.entity';
-import { AD_REWARDED_AMOUNT } from './constants/reward-amount.constants';
+import {
+  AD_REWARDED_AMOUNT,
+  ATTENDANCE_REWARD_AMOUNT,
+} from './constants/reward-amount.constants';
 import {
   CreateAdViewRequestDto,
   CreateAdViewResponseDto,
+  CreateAttendanceResponseDto,
+  GetAttendanceResponseDto,
   GetRewardHistoryResponseDto,
 } from './dto';
 import { AdViewLog } from './entities/ad-view-log.entity';
 import { RewardHistory } from './entities/reward-history.entity';
-import { AdType } from './enums/ad-type.enum';
 import { RewardType } from './enums/reward-type.enum';
 
 /**
@@ -43,56 +54,89 @@ export class RewardService {
   }
 
   /**
-   * 광고 시청을 기록하고, rewarded 광고인 경우 하루 1회 리워드를 지급한다.
-   * 출석체크(하루 1회 접속 보상)도 rewarded 유형 시청으로 처리한다.
+   * 광고 시청을 기록하고 리워드를 지급한다. 횟수 제한은 없다.
    */
   async recordAdView(
     userId: string,
     dto: CreateAdViewRequestDto,
   ): Promise<CreateAdViewResponseDto> {
-    const viewDate = new Date().toISOString().slice(0, 10);
+    const viewDate = toKstDateString();
     return this.dataSource.transaction(async (manager: EntityManager) => {
-      const alreadyViewed = await manager.findOneBy(AdViewLog, {
-        userId,
-        adType: dto.adType,
-        viewDate,
-      });
-      if (alreadyViewed) {
-        throw new AppException(
-          ErrorCode.AD_ALREADY_VIEWED_TODAY,
-          { adType: dto.adType },
-          undefined,
-          `오늘은 이미 시청한 광고입니다. (${dto.adType})`,
-        );
+      const user = await manager.findOneBy(User, { id: userId });
+      if (!user) {
+        throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+          userId: userId,
+        });
       }
-
-      const rewardAmount =
-        dto.adType === AdType.REWARDED ? AD_REWARDED_AMOUNT : 0;
-
+      // ponytail: 클라이언트 신고만 믿고 지급한다. 어뷰징이 보이면 광고 SDK 서버 검증(SSV) 붙이기
       await manager.save(AdViewLog, {
         userId,
         adType: dto.adType,
         viewDate,
-        rewardAmount,
+        rewardAmount: AD_REWARDED_AMOUNT,
       });
+      user.rewardCount += AD_REWARDED_AMOUNT;
+      await manager.save(User, user);
+      await manager.save(RewardHistory, {
+        userId,
+        type: RewardType.AD,
+        amount: AD_REWARDED_AMOUNT,
+      });
+      return { adType: dto.adType, viewDate, rewardAmount: AD_REWARDED_AMOUNT };
+    });
+  }
 
-      if (rewardAmount > 0) {
-        const user = await manager.findOneBy(User, { id: userId });
-        if (!user) {
-          throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
-            userId: userId,
-          });
-        }
-        user.rewardCount += rewardAmount;
-        await manager.save(User, user);
-        await manager.save(RewardHistory, {
-          userId,
-          type: RewardType.AD,
-          amount: rewardAmount,
+  /**
+   * 오늘(KST) 출석체크를 했는지 조회한다.
+   */
+  async findTodayAttendance(userId: string): Promise<GetAttendanceResponseDto> {
+    const attendanceDate = toKstDateString();
+    const isChecked = await this.rewardHistoryRepository.existsBy(
+      this.buildAttendanceWhere(userId, attendanceDate),
+    );
+    return { attendanceDate, isChecked };
+  }
+
+  /**
+   * 출석체크를 하고 리워드를 지급한다. 하루(KST) 1회만 가능하다.
+   */
+  async checkAttendance(userId: string): Promise<CreateAttendanceResponseDto> {
+    const attendanceDate = toKstDateString();
+    return this.dataSource.transaction(async (manager: EntityManager) => {
+      // ponytail: 조회 후 저장이라 동시 요청 시 중복 지급 가능. 문제되면 (user_id, 날짜) 유니크 컬럼 추가
+      const alreadyChecked = await manager.findOne(RewardHistory, {
+        where: this.buildAttendanceWhere(userId, attendanceDate),
+      });
+      if (alreadyChecked) {
+        throw new AppException(ErrorCode.ATTENDANCE_ALREADY_CHECKED);
+      }
+      const user = await manager.findOneBy(User, { id: userId });
+      if (!user) {
+        throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+          userId: userId,
         });
       }
-
-      return { adType: dto.adType, viewDate, rewardAmount };
+      user.rewardCount += ATTENDANCE_REWARD_AMOUNT;
+      await manager.save(User, user);
+      await manager.save(RewardHistory, {
+        userId,
+        type: RewardType.ATTENDANCE,
+        amount: ATTENDANCE_REWARD_AMOUNT,
+      });
+      return { attendanceDate, rewardAmount: ATTENDANCE_REWARD_AMOUNT };
     });
+  }
+
+  private buildAttendanceWhere(
+    userId: string,
+    attendanceDate: string,
+  ): FindOptionsWhere<RewardHistory> {
+    return {
+      userId,
+      type: RewardType.ATTENDANCE,
+      createdDate: MoreThanOrEqual(
+        new Date(`${attendanceDate}T00:00:00+09:00`),
+      ),
+    };
   }
 }

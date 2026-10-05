@@ -54,7 +54,7 @@ export enum ErrorCode {
   CHARACTER_NOT_FOUND = 'CHARACTER_NOT_FOUND',
 
   // 리워드
-  AD_ALREADY_VIEWED_TODAY = 'AD_ALREADY_VIEWED_TODAY',
+  ATTENDANCE_ALREADY_CHECKED = 'ATTENDANCE_ALREADY_CHECKED',
 
   // 공지
   NOTICE_NOT_FOUND = 'NOTICE_NOT_FOUND',
@@ -214,7 +214,7 @@ export const ERROR_META: Record<
     message: '졸업 가능한 캐릭터를 찾을 수 없습니다.',
   },
 
-  [ErrorCode.AD_ALREADY_VIEWED_TODAY]: {
+  [ErrorCode.ATTENDANCE_ALREADY_CHECKED]: {
     status: HttpStatus.CONFLICT,
     message: '오늘은 이미 시청한 광고입니다.',
   },
