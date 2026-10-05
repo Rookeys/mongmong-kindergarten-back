@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { Character } from './character.entity';
 
@@ -13,6 +14,7 @@ import { Character } from './character.entity';
  * 캐릭터-아이템 매핑 엔티티 (CHARACTER_ITEM_MAP)
  */
 @Entity('character_item_map')
+@Unique(['characterId', 'itemId'])
 export class CharacterItemMap {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'character_item_map_id' })
   id!: string;

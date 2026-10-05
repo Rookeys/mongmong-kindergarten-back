@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { LetterReactionType } from '../enums/letter-reaction-type.enum';
 import { Letter } from './letter.entity';
@@ -14,6 +15,7 @@ import { Letter } from './letter.entity';
  * 편지 반응 엔티티 (LETTER_REACTION)
  */
 @Entity('letter_reaction')
+@Unique(['letterId', 'userId'])
 export class LetterReaction {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'letter_reaction_id' })
   id!: string;

@@ -5,6 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   Column,
+  Unique,
 } from 'typeorm';
 import { User } from './user.entity';
 
@@ -12,6 +13,7 @@ import { User } from './user.entity';
  * 사용자 차단 엔티티 (USER_BLOCK)
  */
 @Entity('user_block')
+@Unique(['blockerUserId', 'blockedUserId'])
 export class UserBlock {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'user_block_id' })
   id!: string;

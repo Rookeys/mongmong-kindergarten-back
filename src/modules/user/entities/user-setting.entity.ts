@@ -7,6 +7,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 import { User } from './user.entity';
 
@@ -14,6 +15,7 @@ import { User } from './user.entity';
  * 사용자 설정 엔티티 (USER_SETTING)
  */
 @Entity('user_setting')
+@Unique(['userId'])
 export class UserSetting {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'user_setting_id' })
   id!: string;
