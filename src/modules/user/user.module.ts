@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { QuestionSeries } from '../question/entities/question-series.entity';
 import { User } from './entities/user.entity';
 import { UserBlock } from './entities/user-block.entity';
 import { UserDevice } from './entities/user-device.entity';
@@ -20,6 +21,7 @@ import { UserService } from './user.service';
       UserDevice,
       UserInvite,
       UserBlock,
+      QuestionSeries,
     ]),
     forwardRef(() => AuthModule),
   ],

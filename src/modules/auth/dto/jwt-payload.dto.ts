@@ -11,6 +11,11 @@ export class JwtPayloadDto {
   @ApiProperty({ description: '이메일', example: 'user@example.com' })
   email!: string;
 
-  @ApiProperty({ description: '권한', enum: UserRole, example: UserRole.USER })
+  @ApiProperty({
+    description: '권한',
+    enum: UserRole,
+    enumName: 'UserRole',
+    example: UserRole.USER,
+  })
   role!: UserRole;
 }

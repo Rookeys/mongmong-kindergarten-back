@@ -29,9 +29,13 @@ export class GraduationCard {
   @Column({ name: 'character_id', type: 'bigint' })
   characterId!: string;
 
-  @ManyToOne(() => Character, (character: Character) => character.graduationCards, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => Character,
+    (character: Character) => character.graduationCards,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'character_id' })
   character!: Character;
 

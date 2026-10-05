@@ -1,13 +1,12 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import { BCRYPT_SALT_ROUNDS } from '../auth/constants/password.constants';
+import { QuestionSeries } from '../question/entities/question-series.entity';
 import {
   CreateUserRequestDto,
   DeleteUserResponseDto,
@@ -16,6 +15,7 @@ import {
   UpdateUserRequestDto,
 } from './dto';
 import { User } from './entities/user.entity';
+import { UserInvite } from './entities/user-invite.entity';
 import { UserSetting } from './entities/user-setting.entity';
 import { LoginType } from './enums/login-type.enum';
 import { UserRole } from './enums/user-role.enum';
@@ -30,6 +30,8 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(QuestionSeries)
+    private readonly questionSeriesRepository: Repository<QuestionSeries>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -50,7 +52,9 @@ export class UserService {
   async findById(userId: string): Promise<User> {
     const user = await this.userRepository.findOneBy({ id: userId });
     if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+      throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+        userId: userId,
+      });
     }
     return user;
   }
@@ -70,11 +74,23 @@ export class UserService {
     await this.ensureEmailIsAvailable(dto.email);
     const hashedPassword = await bcrypt.hash(dto.password, BCRYPT_SALT_ROUNDS);
     const savedUser = await this.dataSource.transaction(async (manager) => {
+      const inviter = await this.findInviterByCode(
+        manager,
+        dto.friendInviteCode,
+      );
       const user = await manager.save(
         User,
         this.buildLocalUserPayload(dto, hashedPassword),
       );
       await manager.save(UserSetting, this.buildDefaultUserSetting(user));
+      if (inviter) {
+        await manager.save(UserInvite, {
+          inviterUserId: inviter.id,
+          inviteeUserId: user.id,
+          inviteCode: inviter.myInviteCode,
+          rewardGivenYn: false,
+        });
+      }
       return user;
     });
     return this.mapUserToResponse(savedUser);
@@ -121,7 +137,7 @@ export class UserService {
     dto: UpdateUserRequestDto,
   ): Promise<GetUserResponseDto> {
     const user = await this.findById(userId);
-    this.applyUserUpdates(user, dto);
+    await this.applyUserUpdates(user, dto);
     const savedUser = await this.userRepository.save(user);
     return this.mapUserToResponse(savedUser);
   }
@@ -169,8 +185,29 @@ export class UserService {
   private async ensureEmailIsAvailable(email: string): Promise<void> {
     const existingUser = await this.userRepository.findOneBy({ email });
     if (existingUser) {
-      throw new BadRequestException('이미 존재하는 이메일입니다.');
+      throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
     }
+  }
+
+  private async findInviterByCode(
+    manager: EntityManager,
+    friendInviteCode?: string,
+  ): Promise<User | null> {
+    if (!friendInviteCode) {
+      return null;
+    }
+    const inviter = await manager.findOneBy(User, {
+      myInviteCode: friendInviteCode,
+    });
+    if (!inviter) {
+      throw new AppException(
+        ErrorCode.INVITE_CODE_INVALID,
+        { friendInviteCode },
+        undefined,
+        `유효하지 않은 친구 초대 코드입니다. (${friendInviteCode})`,
+      );
+    }
+    return inviter;
   }
 
   private buildLocalUserPayload(
@@ -206,7 +243,10 @@ export class UserService {
     };
   }
 
-  private applyUserUpdates(user: User, dto: UpdateUserRequestDto): void {
+  private async applyUserUpdates(
+    user: User,
+    dto: UpdateUserRequestDto,
+  ): Promise<void> {
     if (dto.nickname !== undefined) {
       user.nickname = dto.nickname;
     }
@@ -215,6 +255,17 @@ export class UserService {
     }
     if (dto.friendInviteCode !== undefined) {
       user.friendInviteCode = dto.friendInviteCode;
+    }
+    if (dto.questionSeriesId !== undefined) {
+      const series = await this.questionSeriesRepository.findOneBy({
+        id: dto.questionSeriesId,
+      });
+      if (!series) {
+        throw AppException.withTarget(ErrorCode.QUESTION_SERIES_NOT_FOUND, {
+          questionSeriesId: dto.questionSeriesId,
+        });
+      }
+      user.questionSeriesId = series.id;
     }
   }
 }

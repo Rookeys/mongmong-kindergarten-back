@@ -1,9 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
+import { AppException } from '../../common/app-exception';
+import { ErrorCode } from '../../common/error-code';
 import { GetUserResponseDto } from '../user/dto/get/get-user-response.dto';
 import { CreateUserRequestDto } from '../user/dto/post/create-user-request.dto';
 import { User } from '../user/entities/user.entity';
@@ -15,6 +17,11 @@ import { AuthTokenResponseDto } from './dto/auth-token-response.dto';
 import { JwtPayloadDto } from './dto/jwt-payload.dto';
 import { KakaoAuthService } from './services/kakao-auth.service';
 import type { KakaoUserProfile } from './types/kakao-user-profile.type';
+
+const LOGIN_TYPE_LABEL: Record<LoginType, string> = {
+  [LoginType.LOCAL]: '이메일',
+  [LoginType.KAKAO]: '카카오',
+};
 
 type LoginUser = Pick<GetUserResponseDto, 'id' | 'email' | 'role'>;
 
@@ -38,20 +45,35 @@ export class AuthService {
   async validateUser(
     email: string,
     password: string,
-  ): Promise<GetUserResponseDto | null> {
+  ): Promise<GetUserResponseDto> {
     const user = await this.userRepository.findOneBy({ email });
-    if (!user?.password) {
-      return null;
+    if (!user) {
+      throw new AppException(ErrorCode.AUTH_EMAIL_NOT_FOUND);
     }
     if (user.loginType !== LoginType.LOCAL) {
-      return null;
+      throw new AppException(
+        ErrorCode.AUTH_SOCIAL_ACCOUNT,
+        { loginType: user.loginType },
+        undefined,
+        `${LOGIN_TYPE_LABEL[user.loginType]}로 가입된 계정입니다. ${LOGIN_TYPE_LABEL[user.loginType]} 로그인을 이용해주세요.`,
+      );
+    }
+    if (!user.password) {
+      throw new AppException(ErrorCode.AUTH_PASSWORD_NOT_SET);
     }
     if (user.status !== UserStatus.ACTIVE) {
-      return null;
+      throw new AppException(
+        ErrorCode.AUTH_ACCOUNT_INACTIVE,
+        { status: user.status },
+        undefined,
+        user.status === UserStatus.DELETED
+          ? '탈퇴한 계정입니다.'
+          : '비활성화된 계정입니다. 고객센터에 문의해주세요.',
+      );
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return null;
+      throw new AppException(ErrorCode.AUTH_WRONG_PASSWORD);
     }
     return this.userService.mapUserToResponse(user);
   }
@@ -179,7 +201,8 @@ export class AuthService {
   private getJwtSecret(): string {
     const jwtSecret = this.configService.get<string>('JWT_SECRET');
     if (!jwtSecret) {
-      throw new UnauthorizedException('JWT_SECRET is not defined.');
+      // 서버 설정 오류: 클라이언트에는 INTERNAL_ERROR로만 노출된다.
+      throw new Error('JWT_SECRET is not defined.');
     }
     return jwtSecret;
   }

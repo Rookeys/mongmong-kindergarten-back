@@ -3,34 +3,97 @@ import {
   Catch,
   ArgumentsHost,
   HttpException,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { QueryFailedError } from 'typeorm';
+import { AppException } from './app-exception';
+import { ERROR_META, ErrorCode } from './error-code';
 
-// @Catch 데코레이터는 이 필터가 'HttpException' 타입의 에러만 잡겠다는 뜻입니다.
-@Catch(HttpException)
+// Nest 기본 예외(코드 미지정)를 상태코드 기반 공통 코드로 매핑
+const STATUS_CODE: Partial<Record<number, ErrorCode>> = {
+  [HttpStatus.BAD_REQUEST]: ErrorCode.BAD_REQUEST,
+  [HttpStatus.UNAUTHORIZED]: ErrorCode.UNAUTHORIZED,
+  [HttpStatus.FORBIDDEN]: ErrorCode.FORBIDDEN,
+  [HttpStatus.NOT_FOUND]: ErrorCode.NOT_FOUND,
+  [HttpStatus.CONFLICT]: ErrorCode.CONFLICT,
+};
+
+// PostgreSQL 에러 코드
+const PG_UNIQUE_VIOLATION = '23505';
+const PG_FOREIGN_KEY_VIOLATION = '23503';
+
+interface ErrorBody {
+  statusCode: number;
+  code: ErrorCode;
+  message: string;
+  details?: Record<string, unknown>;
+  errors?: AppException['errors'];
+}
+
+/**
+ * 모든 예외를 { success, timestamp, path, statusCode, code, message, details?, errors? } 로 통일한다.
+ */
+@Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  catch(exception: HttpException, host: ArgumentsHost) {
-    const ctx = host.switchToHttp(); // 1. 실행 컨텍스트에서 HTTP 관련 객체를 가져옵니다.
-    const response = ctx.getResponse<Response>(); // 2. Express의 Response 객체
-    const request = ctx.getRequest<Request>(); // 3. Express의 Request 객체
-    const status = exception.getStatus(); // 4. 예외가 발생한 상태 코드 (예: 400, 404)
+  private readonly logger = new Logger(HttpExceptionFilter.name);
 
-    // exception에서 message 부분을 추출합니다.
-    const errorResponse = exception.getResponse();
-    const message =
-      typeof errorResponse === 'object' &&
-      !!errorResponse &&
-      'message' in errorResponse
-        ? (errorResponse as { message: string | string[] }).message
-        : (errorResponse as string);
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+    const body = this.toBody(exception);
 
-    // 5. 우리가 원하는 형태로 응답 JSON을 조립합니다.
-    response.status(status).json({
+    if (body.statusCode >= 500) {
+      this.logger.error(exception);
+    }
+
+    response.status(body.statusCode).json({
       success: false,
       timestamp: new Date().toISOString(),
       path: request.url,
-      statusCode: status,
-      message: message.toString(),
+      ...body,
     });
+  }
+
+  private toBody(exception: unknown): ErrorBody {
+    if (exception instanceof AppException) {
+      return {
+        statusCode: exception.getStatus(),
+        code: exception.code,
+        message: exception.message,
+        details: exception.details,
+        errors: exception.errors,
+      };
+    }
+    if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+      const code =
+        STATUS_CODE[status] ??
+        (status >= 500 ? ErrorCode.INTERNAL_ERROR : ErrorCode.BAD_REQUEST);
+      // Nest/passport 기본 영문 메시지는 버리고 한글 기본 문구를 쓴다.
+      return { statusCode: status, code, message: ERROR_META[code].message };
+    }
+    if (exception instanceof QueryFailedError) {
+      const pgCode = (exception.driverError as { code?: string } | undefined)
+        ?.code;
+      if (pgCode === PG_UNIQUE_VIOLATION) {
+        return this.fromCode(ErrorCode.DUPLICATE_RESOURCE);
+      }
+      if (pgCode === PG_FOREIGN_KEY_VIOLATION) {
+        return this.fromCode(ErrorCode.RESOURCE_IN_USE);
+      }
+    }
+    // 미분류 에러는 내부 정보를 노출하지 않는다.
+    return this.fromCode(ErrorCode.INTERNAL_ERROR);
+  }
+
+  private fromCode(code: ErrorCode): ErrorBody {
+    return {
+      statusCode: ERROR_META[code].status,
+      code,
+      message: ERROR_META[code].message,
+    };
   }
 }

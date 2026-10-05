@@ -7,7 +7,9 @@ const INVITE_CODE_LENGTH = 8;
 export function createInviteCode(): string {
   let inviteCode = '';
   for (let index = 0; index < INVITE_CODE_LENGTH; index += 1) {
-    const randomIndex = Math.floor(Math.random() * INVITE_CODE_CHARACTERS.length);
+    const randomIndex = Math.floor(
+      Math.random() * INVITE_CODE_CHARACTERS.length,
+    );
     inviteCode += INVITE_CODE_CHARACTERS[randomIndex];
   }
   return inviteCode;

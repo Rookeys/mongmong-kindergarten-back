@@ -1,3 +1,5 @@
+import { ApiErrors } from '../../common/api-errors.decorator';
+import { ErrorCode } from '../../common/error-code';
 import {
   Body,
   Controller,
@@ -8,14 +10,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { GetUserResponseDto } from '../user/dto/get/get-user-response.dto';
 import { UpdateUserRequestDto } from '../user/dto/patch/update-user-request.dto';
@@ -57,7 +57,14 @@ export class AuthController {
   @ApiOperation({ summary: '로컬 로그인' })
   @ApiBody({ type: LoginRequestDto })
   @ApiOkResponse({ description: '로그인 성공', type: AuthTokenResponseDto })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_EMAIL_NOT_FOUND,
+    ErrorCode.AUTH_WRONG_PASSWORD,
+    ErrorCode.AUTH_SOCIAL_ACCOUNT,
+    ErrorCode.AUTH_PASSWORD_NOT_SET,
+    ErrorCode.AUTH_ACCOUNT_INACTIVE,
+  )
   async login(
     @Body() _loginDto: LoginRequestDto,
     @Req() request: LocalAuthRequest,
@@ -75,7 +82,11 @@ export class AuthController {
     description: '회원가입 성공',
     type: RegisterResponseDto,
   })
-  @ApiBadRequestResponse({ description: '유효성 검사 실패 또는 이메일 중복' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.EMAIL_ALREADY_EXISTS,
+    ErrorCode.INVITE_CODE_INVALID,
+  )
   async register(
     @Body() dto: RegisterRequestDto,
   ): Promise<RegisterResponseDto> {
@@ -92,7 +103,12 @@ export class AuthController {
   })
   @ApiBody({ type: KakaoLoginRequestDto })
   @ApiOkResponse({ description: '로그인 성공', type: AuthTokenResponseDto })
-  @ApiUnauthorizedResponse({ description: '카카오 토큰이 유효하지 않음' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.KAKAO_TOKEN_INVALID,
+    ErrorCode.KAKAO_PROFILE_UNAVAILABLE,
+    ErrorCode.KAKAO_UPSTREAM_ERROR,
+  )
   async kakaoLogin(
     @Body() dto: KakaoLoginRequestDto,
   ): Promise<AuthTokenResponseDto> {
@@ -107,7 +123,12 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '내 프로필 조회' })
   @ApiOkResponse({ description: '조회 성공', type: GetUserResponseDto })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.USER_NOT_FOUND,
+  )
   async getMe(@Req() request: JwtAuthRequest): Promise<GetUserResponseDto> {
     return this.userService.findOne(request.user.sub);
   }
@@ -121,7 +142,14 @@ export class AuthController {
   @ApiOperation({ summary: '내 프로필 수정' })
   @ApiBody({ type: UpdateUserRequestDto })
   @ApiOkResponse({ description: '수정 성공', type: GetUserResponseDto })
-  @ApiUnauthorizedResponse({ description: '인증 실패' })
+  @ApiErrors(
+    ErrorCode.VALIDATION_FAILED,
+    ErrorCode.AUTH_TOKEN_MISSING,
+    ErrorCode.AUTH_TOKEN_EXPIRED,
+    ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.USER_NOT_FOUND,
+    ErrorCode.QUESTION_SERIES_NOT_FOUND,
+  )
   async updateMe(
     @Req() request: JwtAuthRequest,
     @Body() dto: UpdateUserRequestDto,

@@ -20,6 +20,7 @@ export class GetUserResponseDto {
   @ApiProperty({
     description: '로그인 유형',
     enum: LoginType,
+    enumName: 'LoginType',
     example: LoginType.LOCAL,
   })
   loginType!: LoginType;
@@ -50,6 +51,7 @@ export class GetUserResponseDto {
   @ApiProperty({
     description: '계정 상태',
     enum: UserStatus,
+    enumName: 'UserStatus',
     example: UserStatus.ACTIVE,
   })
   status!: UserStatus;
@@ -57,6 +59,7 @@ export class GetUserResponseDto {
   @ApiProperty({
     description: '권한',
     enum: UserRole,
+    enumName: 'UserRole',
     example: UserRole.USER,
   })
   role!: UserRole;

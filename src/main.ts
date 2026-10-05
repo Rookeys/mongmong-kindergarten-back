@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './common/http-exception.filter';
 import { API_GLOBAL_PREFIX } from './common/constants/api-global-prefix.constant';
 import { Logger } from 'nestjs-pino';
+import { toValidationException } from './common/validation-errors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -35,6 +36,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: toValidationException,
       transformOptions: {
         enableImplicitConversion: true,
       },
