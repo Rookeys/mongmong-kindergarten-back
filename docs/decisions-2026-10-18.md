@@ -52,7 +52,7 @@
 | 캐릭터 홈 | 캐릭터 이름·레벨·다음 레벨까지 편지 수 표시 | `GET /characters/me` (`characterType.name`, `level`, `letterCount`, `nextLevelLetterCount`) |
 | 졸업 연출 | `canGraduate`가 true면 졸업 연출 → 졸업 API 호출 → 졸업 카드 표시 | `POST /characters/graduate` |
 | 졸업 앨범 | 카드에 이름·편지 수·가장 많이 보낸 기분 표시 | `GET /characters/graduation-cards` (`characterName`, `letterCount`, `topMood`) |
-| 꾸미기 탭 | 옷/얼굴/배경 탭별 조회 | `GET /items?itemType=clothes|face|background` |
+| 꾸미기 탭 | 옷/얼굴/배경 탭별 조회 | `GET /items?itemType=` `clothes` / `face` / `background` |
 | 기분 선택 | 6종 값 매핑 | `mood`: `good` 기분 좋아, `excited` 신나, `soso` 그냥그래, `angry` 화가 나, `sad` 슬퍼, `depressed` 우울해 |
 | 토큰 갱신 | `AUTH_TOKEN_EXPIRED`면 갱신 후 재요청. 갱신 요청은 한 번만 보내고 나머지는 기다리게 | `POST /auth/refresh` |
 | 관리자(필요 시) | 아이템 판매 중지/재개, 캐릭터 종류 관리, 질문 등록, 신고 처리 | `DELETE·PATCH /items/:id`, `/character-types`, `POST /questions/series`, `PUT /questions/series/:id/questions`, `/letter-reports` |
