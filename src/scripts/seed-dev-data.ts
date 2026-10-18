@@ -12,9 +12,9 @@ const QUESTION_COUNT = 365;
 
 const SAMPLE_ITEMS: Pick<Item, 'name' | 'itemType' | 'imageUrl' | 'cost'>[] = [
   {
-    name: '샘플 모자',
-    itemType: ItemType.HAT,
-    imageUrl: 'https://example.com/items/hat.png',
+    name: '샘플 옷 2',
+    itemType: ItemType.CLOTHES,
+    imageUrl: 'https://example.com/items/clothes-2.png',
     cost: 10,
   },
   {
@@ -24,9 +24,9 @@ const SAMPLE_ITEMS: Pick<Item, 'name' | 'itemType' | 'imageUrl' | 'cost'>[] = [
     cost: 15,
   },
   {
-    name: '샘플 액세서리',
-    itemType: ItemType.ACCESSORY,
-    imageUrl: 'https://example.com/items/accessory.png',
+    name: '샘플 얼굴',
+    itemType: ItemType.FACE,
+    imageUrl: 'https://example.com/items/face.png',
     cost: 5,
   },
   {

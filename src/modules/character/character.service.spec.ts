@@ -179,9 +179,10 @@ function buildService(manager: FakeManager) {
 function seedItem(manager: FakeManager, overrides: Partial<Item> = {}): Item {
   return manager.save(Item, {
     name: '왕관',
-    itemType: ItemType.HAT,
+    itemType: ItemType.CLOTHES,
     imageUrl: 'https://example.com/crown.png',
     cost: 50,
+    isOnSale: true,
     ...overrides,
   }) as Item;
 }
@@ -257,6 +258,17 @@ describe('CharacterService.purchaseItem', () => {
       message: expect.stringContaining('필요'),
     });
     expect((manager.users.get('u1') as User).rewardCount).toBe(10);
+  });
+
+  it('판매 중지된 아이템은 살 수 없다', async () => {
+    const manager = new FakeManager();
+    const item = seedItem(manager, { isOnSale: false });
+    seedUser(manager, { id: 'u1' });
+    const service = buildService(manager);
+
+    await expect(
+      service.purchaseItem('u1', { itemId: item.id }),
+    ).rejects.toMatchObject({ code: ErrorCode.ITEM_NOT_ON_SALE });
   });
 
   it('이미 보유한 아이템은 다시 구매할 수 없다', async () => {

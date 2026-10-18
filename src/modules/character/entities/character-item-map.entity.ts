@@ -31,7 +31,7 @@ export class CharacterItemMap {
   @Column({ name: 'item_id', type: 'bigint' })
   itemId!: string;
 
-  @ManyToOne(() => Item, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Item, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'item_id' })
   item!: Item;
 

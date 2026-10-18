@@ -112,7 +112,7 @@ export async function seedQuestions(moduleRef: TestingModule): Promise<void> {
 export async function createItem(
   moduleRef: TestingModule,
   cost: number,
-  itemType: ItemType = ItemType.HAT,
+  itemType: ItemType = ItemType.CLOTHES,
 ): Promise<Item> {
   return moduleRef
     .get(DataSource)

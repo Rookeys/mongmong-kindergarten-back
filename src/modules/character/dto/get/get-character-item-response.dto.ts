@@ -18,7 +18,7 @@ export class GetCharacterItemResponseDto {
     description: '아이템 유형',
     enum: ItemType,
     enumName: 'ItemType',
-    example: ItemType.HAT,
+    example: ItemType.CLOTHES,
   })
   itemType!: ItemType;
 

@@ -54,6 +54,7 @@ export enum ErrorCode {
 
   // 캐릭터/아이템
   ITEM_NOT_FOUND = 'ITEM_NOT_FOUND',
+  ITEM_NOT_ON_SALE = 'ITEM_NOT_ON_SALE',
   CHARACTER_ITEM_ALREADY_OWNED = 'CHARACTER_ITEM_ALREADY_OWNED',
   CHARACTER_ITEM_NOT_OWNED = 'CHARACTER_ITEM_NOT_OWNED',
   REWARD_INSUFFICIENT = 'REWARD_INSUFFICIENT',
@@ -226,6 +227,10 @@ export const ERROR_META: Record<
   [ErrorCode.ITEM_NOT_FOUND]: {
     status: HttpStatus.NOT_FOUND,
     message: '아이템을 찾을 수 없습니다.',
+  },
+  [ErrorCode.ITEM_NOT_ON_SALE]: {
+    status: HttpStatus.CONFLICT,
+    message: '판매가 중지된 아이템입니다.',
   },
   [ErrorCode.CHARACTER_ITEM_ALREADY_OWNED]: {
     status: HttpStatus.CONFLICT,

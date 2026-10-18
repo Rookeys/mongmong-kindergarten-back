@@ -89,6 +89,11 @@ export class CharacterService {
             itemId: dto.itemId,
           });
         }
+        if (!item.isOnSale) {
+          throw AppException.withTarget(ErrorCode.ITEM_NOT_ON_SALE, {
+            itemId: item.id,
+          });
+        }
         const alreadyOwned = await manager.findOneBy(CharacterItemMap, {
           characterId: character.id,
           itemId: item.id,

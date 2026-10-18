@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -39,4 +40,12 @@ export class UpdateItemRequestDto {
   @IsInt()
   @Min(0)
   cost?: number;
+
+  @ApiPropertyOptional({
+    description: '판매 중 여부 (판매를 다시 시작할 때 true)',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isOnSale?: boolean;
 }

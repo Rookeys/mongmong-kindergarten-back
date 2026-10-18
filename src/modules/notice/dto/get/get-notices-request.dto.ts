@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import { ToBoolean } from '../../../../common/decorators/to-boolean.decorator';
 import { NoticeType } from '../../enums/notice-type.enum';
 
 /**
@@ -22,6 +23,7 @@ export class GetNoticesRequestDto {
     example: true,
   })
   @IsOptional()
+  @ToBoolean()
   @IsBoolean()
   isPublished?: boolean;
 }

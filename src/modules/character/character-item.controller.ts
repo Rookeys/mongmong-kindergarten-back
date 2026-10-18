@@ -80,6 +80,7 @@ export class CharacterItemController {
     ErrorCode.AUTH_TOKEN_EXPIRED,
     ErrorCode.AUTH_TOKEN_INVALID,
     ErrorCode.ITEM_NOT_FOUND,
+    ErrorCode.ITEM_NOT_ON_SALE,
     ErrorCode.CHARACTER_ITEM_ALREADY_OWNED,
     ErrorCode.REWARD_INSUFFICIENT,
     ErrorCode.USER_NOT_FOUND,
