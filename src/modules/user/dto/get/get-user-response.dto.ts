@@ -11,8 +11,13 @@ export class GetUserResponseDto {
   @ApiProperty({ description: '사용자 ID', example: '1' })
   id!: string;
 
-  @ApiProperty({ description: '이메일', example: 'user@example.com' })
-  email!: string;
+  @ApiProperty({
+    description: '이메일 (카카오가 이메일을 주지 않으면 null)',
+    example: 'user@example.com',
+    nullable: true,
+    type: String,
+  })
+  email!: string | null;
 
   @ApiProperty({
     description: '닉네임 (null이면 이름 설정 온보딩 필요)',
@@ -46,14 +51,6 @@ export class GetUserResponseDto {
 
   @ApiProperty({ description: '내 초대 코드', example: 'AB12CD34' })
   myInviteCode!: string;
-
-  @ApiProperty({
-    description: '가입 시 입력한 친구 초대 코드',
-    example: null,
-    nullable: true,
-    type: String,
-  })
-  friendInviteCode!: string | null;
 
   @ApiProperty({
     description: '계정 상태',

@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -14,6 +15,7 @@ import { Character } from './character.entity';
  * 졸업 카드 엔티티 (GRADUATION_CARD)
  */
 @Entity('graduation_card')
+@Index(['userId'])
 @Unique(['characterId'])
 export class GraduationCard {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'graduation_card_id' })
@@ -41,7 +43,7 @@ export class GraduationCard {
   @JoinColumn({ name: 'character_id' })
   character!: Character;
 
-  @Column({ name: 'graduated_at', type: 'timestamp' })
+  @Column({ name: 'graduated_at', type: 'timestamptz' })
   graduatedAt!: Date;
 
   @Column({ name: 'level_snapshot', type: 'int' })
@@ -68,6 +70,6 @@ export class GraduationCard {
   @Column({ name: 'period_end', type: 'date', nullable: true })
   periodEnd!: string | null;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

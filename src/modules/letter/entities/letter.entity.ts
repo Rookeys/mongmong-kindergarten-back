@@ -75,9 +75,9 @@ export class Letter {
   )
   reports!: LetterReport[];
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 
-  @UpdateDateColumn({ name: 'updated_date' })
+  @UpdateDateColumn({ name: 'updated_date', type: 'timestamptz' })
   updatedDate!: Date;
 }

@@ -42,6 +42,6 @@ export class UserInvite {
   @Column({ name: 'reward_given_yn', type: 'boolean' })
   rewardGivenYn!: boolean;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

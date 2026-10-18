@@ -40,16 +40,13 @@ export class Character {
   @Column({ type: 'int', default: 0 })
   experience!: number;
 
-  @Column({ name: 'use_yn', type: 'boolean' })
-  useYn!: boolean;
-
   @Column({ type: 'varchar', length: 20 })
   status!: CharacterStatus;
 
-  @Column({ name: 'graduated_at', type: 'timestamp', nullable: true })
+  @Column({ name: 'graduated_at', type: 'timestamptz', nullable: true })
   graduatedAt!: Date | null;
 
-  @Column({ name: 'last_watered_at', type: 'timestamp', nullable: true })
+  @Column({ name: 'last_watered_at', type: 'timestamptz', nullable: true })
   lastWateredAt!: Date | null;
 
   @OneToMany(
@@ -64,9 +61,9 @@ export class Character {
   )
   itemMaps!: CharacterItemMap[];
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 
-  @UpdateDateColumn({ name: 'updated_date' })
+  @UpdateDateColumn({ name: 'updated_date', type: 'timestamptz' })
   updatedDate!: Date;
 }

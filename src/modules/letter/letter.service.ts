@@ -358,7 +358,7 @@ export class LetterService {
   ): Promise<GetAiReplyResponseDto> {
     const aiReply = await this.aiReplyRepository.findOneBy({
       id: aiReplyId,
-      userId,
+      letter: { userId },
     });
     if (!aiReply) {
       throw AppException.withTarget(ErrorCode.AI_REPLY_NOT_FOUND, {

@@ -100,11 +100,13 @@ export class UserService {
    * 소셜 로그인 사용자를 생성한다.
    */
   async createSocialUser(input: {
-    email: string;
+    email: string | null;
     loginType: LoginType;
     providerId: string;
   }): Promise<User> {
-    await this.ensureEmailIsAvailable(input.email);
+    if (input.email) {
+      await this.ensureEmailIsAvailable(input.email);
+    }
     return this.dataSource.transaction(async (manager) => {
       const user = await manager.save(User, {
         email: input.email,
@@ -115,7 +117,6 @@ export class UserService {
         rewardCount: 0,
         aiReplyCycle: 0,
         myInviteCode: createInviteCode(),
-        friendInviteCode: null,
         status: UserStatus.ACTIVE,
         role: UserRole.USER,
         deletedRequestAt: null,
@@ -168,7 +169,6 @@ export class UserService {
       rewardCount: user.rewardCount,
       aiReplyCycle: user.aiReplyCycle,
       myInviteCode: user.myInviteCode,
-      friendInviteCode: user.friendInviteCode,
       status: user.status,
       role: user.role,
       lastLoginDate: user.lastLoginDate,
@@ -220,7 +220,6 @@ export class UserService {
       rewardCount: 0,
       aiReplyCycle: 0,
       myInviteCode: createInviteCode(),
-      friendInviteCode: dto.friendInviteCode ?? null,
       status: UserStatus.ACTIVE,
       role: UserRole.USER,
       deletedRequestAt: null,
@@ -248,9 +247,6 @@ export class UserService {
     }
     if (dto.status !== undefined) {
       user.status = dto.status;
-    }
-    if (dto.friendInviteCode !== undefined) {
-      user.friendInviteCode = dto.friendInviteCode;
     }
     if (dto.questionSeriesId !== undefined) {
       const series = await this.questionSeriesRepository.findOneBy({

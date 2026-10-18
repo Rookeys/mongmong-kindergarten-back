@@ -1,11 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-  Matches,
-  MaxLength,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsString, Matches } from 'class-validator';
 import { NICKNAME_PATTERN } from '../../constants/nickname.constants';
 import { UserStatus } from '../../enums/user-status.enum';
 
@@ -33,18 +27,6 @@ export class UpdateUserRequestDto {
   @IsOptional()
   @IsEnum(UserStatus)
   status?: UserStatus;
-
-  @ApiPropertyOptional({
-    description: '친구 초대 코드',
-    example: 'AB12CD34',
-    maxLength: 20,
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  friendInviteCode?: string | null;
 
   @ApiPropertyOptional({
     description: '선택한 질문 시리즈 ID (온보딩 시 선택)',

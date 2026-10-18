@@ -140,23 +140,11 @@ export class AuthService {
     kakaoUserProfile: KakaoUserProfile,
     providerId: string,
   ): Promise<User> {
-    const email = this.resolveKakaoEmail(kakaoUserProfile, providerId);
     return this.userService.createSocialUser({
-      email,
+      email: this.kakaoAuthService.extractEmail(kakaoUserProfile),
       loginType: LoginType.KAKAO,
       providerId,
     });
-  }
-
-  private resolveKakaoEmail(
-    kakaoUserProfile: KakaoUserProfile,
-    providerId: string,
-  ): string {
-    const email = this.kakaoAuthService.extractEmail(kakaoUserProfile);
-    if (email) {
-      return email;
-    }
-    return `kakao_${providerId}@kakao.local`;
   }
 
   private async updateKakaoUserProfile(

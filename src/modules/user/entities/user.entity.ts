@@ -1,4 +1,3 @@
-import { AiReply } from '../../letter/entities/ai-reply.entity';
 import { LetterReaction } from '../../letter/entities/letter-reaction.entity';
 import { LetterReport } from '../../letter/entities/letter-report.entity';
 import { Letter } from '../../letter/entities/letter.entity';
@@ -43,8 +42,9 @@ export class User {
   @JoinColumn({ name: 'question_series_id' })
   questionSeries!: QuestionSeries | null;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
-  email!: string;
+  /** 카카오가 이메일을 주지 않으면 null (로컬 가입은 필수) */
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
+  email!: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   password!: string | null;
@@ -72,24 +72,16 @@ export class User {
   @Column({ name: 'my_invite_code', type: 'varchar', length: 20, unique: true })
   myInviteCode!: string;
 
-  @Column({
-    name: 'friend_invite_code',
-    type: 'varchar',
-    length: 20,
-    nullable: true,
-  })
-  friendInviteCode!: string | null;
-
   @Column({ type: 'varchar', length: 20 })
   status!: UserStatus;
 
   @Column({ type: 'varchar', length: 20, default: UserRole.USER })
   role!: UserRole;
 
-  @Column({ name: 'deleted_request_at', type: 'timestamp', nullable: true })
+  @Column({ name: 'deleted_request_at', type: 'timestamptz', nullable: true })
   deletedRequestAt!: Date | null;
 
-  @Column({ name: 'last_login_date', type: 'timestamp', nullable: true })
+  @Column({ name: 'last_login_date', type: 'timestamptz', nullable: true })
   lastLoginDate!: Date | null;
 
   @OneToMany(() => UserSetting, (userSetting: UserSetting) => userSetting.user)
@@ -128,9 +120,6 @@ export class User {
   @OneToMany(() => Letter, (letter: Letter) => letter.user)
   letters!: Letter[];
 
-  @OneToMany(() => AiReply, (aiReply: AiReply) => aiReply.user)
-  aiReplies!: AiReply[];
-
   @OneToMany(
     () => LetterReaction,
     (letterReaction: LetterReaction) => letterReaction.user,
@@ -152,9 +141,9 @@ export class User {
   )
   graduationCards!: GraduationCard[];
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 
-  @UpdateDateColumn({ name: 'updated_date' })
+  @UpdateDateColumn({ name: 'updated_date', type: 'timestamptz' })
   updatedDate!: Date;
 }

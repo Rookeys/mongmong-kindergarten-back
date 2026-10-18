@@ -24,13 +24,7 @@ const INITIAL_EXPERIENCE = 0;
 
 type NewCharacter = Pick<
   Character,
-  | 'userId'
-  | 'level'
-  | 'experience'
-  | 'useYn'
-  | 'status'
-  | 'graduatedAt'
-  | 'lastWateredAt'
+  'userId' | 'level' | 'experience' | 'status' | 'graduatedAt' | 'lastWateredAt'
 >;
 
 /**
@@ -268,7 +262,6 @@ export class CharacterService {
       userId,
       level: INITIAL_LEVEL,
       experience: INITIAL_EXPERIENCE,
-      useYn: true,
       status: CharacterStatus.GROWING,
       graduatedAt: null,
       lastWateredAt: null,

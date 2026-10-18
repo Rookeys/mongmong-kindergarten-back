@@ -27,9 +27,9 @@ export class Item {
   @Column({ type: 'int', default: 0 })
   cost!: number;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 
-  @UpdateDateColumn({ name: 'updated_date' })
+  @UpdateDateColumn({ name: 'updated_date', type: 'timestamptz' })
   updatedDate!: Date;
 }

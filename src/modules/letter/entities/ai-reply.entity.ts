@@ -1,8 +1,8 @@
-import { User } from '../../user/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -13,6 +13,7 @@ import { Letter } from './letter.entity';
  * AI 답장 엔티티 (AI_REPLY)
  */
 @Entity('ai_reply')
+@Index(['letterId'])
 export class AiReply {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'ai_reply_id' })
   id!: string;
@@ -26,21 +27,12 @@ export class AiReply {
   @JoinColumn({ name: 'letter_id' })
   letter!: Letter;
 
-  @Column({ name: 'user_id', type: 'bigint' })
-  userId!: string;
-
-  @ManyToOne(() => User, (user: User) => user.aiReplies, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'user_id' })
-  user!: User;
-
   @Column({ type: 'text' })
   content!: string;
 
   @Column({ name: 'is_read', type: 'boolean' })
   isRead!: boolean;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

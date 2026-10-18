@@ -38,6 +38,6 @@ export class CharacterItemMap {
   @Column({ name: 'is_equipped', type: 'boolean' })
   isEquipped!: boolean;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

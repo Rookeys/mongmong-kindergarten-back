@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -15,6 +16,7 @@ import { Letter } from './letter.entity';
  * 편지 신고 엔티티 (LETTER_REPORT)
  */
 @Entity('letter_report')
+@Index(['letterId'])
 export class LetterReport {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'letter_report_id' })
   id!: string;
@@ -51,6 +53,6 @@ export class LetterReport {
   @Column({ type: 'varchar', length: 20 })
   status!: LetterReportStatus;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }
