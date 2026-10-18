@@ -11,6 +11,12 @@
 - ERD 원본 문서(dbml, 이미지 등)는 레포에 없다. 이 문서에서 "ERD"는 TypeORM 엔티티를 뜻한다.
 - 표기: 🔴 구조가 달라 결정이 필요 · 🟠 값/정책 불일치 · 🟡 어색하거나 확인하면 좋은 것 · ✅ 이번에 반영함
 
+> **2026-10-18 이후 반영 현황** (`feat/todo-cleanup`): 이 문서는 작성 시점 기준이라 아래 항목은 이미 해결됐다. 남은 일은 `TODO.md`가 기준이다.
+> - 3-11 설정 API: `GET/PATCH /auth/me/settings` 추가 (화면은 아직 없음)
+> - 4장 `characters.use_yn` 제거, 본인 탈퇴 `DELETE /auth/me`·로그아웃 `POST /auth/logout` 추가
+> - 5-3 인덱스, 5-4 `user.friend_invite_code` 제거, 5-5 `user.email` nullable, 5-6 `ai_reply.user_id` 제거, 5-8 아이템 구매도 `reward_history`에 음수로 기록, 5-10 일시 컬럼 `timestamptz`
+> - 6-5 리프레시 토큰: `POST /auth/refresh` 추가
+
 ---
 
 ## 결정 사항 (2026-10-05)
@@ -241,5 +247,5 @@ OpenAPI 스펙은 `/api-docs-json`. OpenAPI Generator(`typescript-axios`)로 실
 - ID는 전부 문자열이다(bigint).
 - 날짜(`letterDate`, `date`)는 KST 기준 `YYYY-MM-DD` 문자열, 일시(`createdDate` 등)는 ISO 문자열이다.
 - 에러는 `ErrorResponseDto.code`(`ErrorCode` enum)로 분기한다. 상세는 `docs/error-codes.md`.
-- 액세스 토큰은 1시간이고 리프레시 토큰이 없다. 만료 시 `AUTH_TOKEN_EXPIRED`가 오면 다시 로그인해야 한다(보류 항목).
+- 액세스 토큰은 1시간이다. 만료 시 `AUTH_TOKEN_EXPIRED`가 오면 `POST /auth/refresh`로 갱신한다(2026-10-18 추가).
 - 스펙에는 관리자용 API(`/users`, `POST /items`, `POST /notices` 등)도 같이 들어 있다.

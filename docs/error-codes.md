@@ -37,6 +37,7 @@
 | `CONFLICT` | 409 | 요청이 현재 상태와 충돌합니다. |
 | `DUPLICATE_RESOURCE` | 409 | 이미 존재하는 값입니다. |
 | `RESOURCE_IN_USE` | 409 | 다른 데이터에서 사용 중이라 처리할 수 없습니다. |
+| `TOO_MANY_REQUESTS` | 429 | 요청이 너무 많습니다. 잠시 후 다시 시도해주세요. |
 | `INTERNAL_ERROR` | 500 | 서버 내부 오류가 발생했습니다. |
 | `AUTH_EMAIL_NOT_FOUND` | 401 | 가입되지 않은 이메일입니다. |
 | `AUTH_WRONG_PASSWORD` | 401 | 비밀번호가 올바르지 않습니다. |
@@ -46,6 +47,7 @@
 | `AUTH_TOKEN_MISSING` | 401 | 인증 토큰이 없습니다. |
 | `AUTH_TOKEN_EXPIRED` | 401 | 인증 토큰이 만료되었습니다. |
 | `AUTH_TOKEN_INVALID` | 401 | 유효하지 않은 인증 토큰입니다. |
+| `AUTH_REFRESH_TOKEN_INVALID` | 401 | 로그인이 만료되었습니다. 다시 로그인해주세요. |
 | `FORBIDDEN_ROLE` | 403 | 접근 권한이 없습니다. |
 | `KAKAO_TOKEN_INVALID` | 401 | 유효하지 않은 카카오 Access Token입니다. |
 | `KAKAO_PROFILE_UNAVAILABLE` | 401 | 카카오 사용자 정보를 확인할 수 없습니다. |
@@ -59,6 +61,7 @@
 | `QUESTION_CONTENT_NOT_FOUND` | 404 | 질문 콘텐츠를 찾을 수 없습니다. |
 | `LETTER_NOT_FOUND` | 404 | 일지를 찾을 수 없습니다. |
 | `LETTER_REPORT_OWN_LETTER` | 403 | 본인 일지는 신고할 수 없습니다. |
+| `LETTER_REPORT_NOT_FOUND` | 404 | 신고를 찾을 수 없습니다. |
 | `LETTER_ALREADY_EXISTS` | 409 | 해당 날짜에는 이미 일지를 작성했습니다. |
 | `LETTER_EDIT_EXPIRED` | 403 | 일지 내용은 작성한 당일에만 수정할 수 있습니다. |
 | `AI_REPLY_NOT_FOUND` | 404 | AI 답장을 찾을 수 없습니다. |
@@ -82,7 +85,14 @@
   - `VALIDATION_FAILED`: "요청 값이 올바르지 않습니다. (email: 이메일 형식이 올바르지 않습니다. 외 2건)" + `errors[]` 전체 목록
 
 ## API별 발생 가능 에러
-(모든 인증 API 공통: `AUTH_TOKEN_EXPIRED` 401 → 재로그인, `AUTH_TOKEN_MISSING`/`AUTH_TOKEN_INVALID` 401 → 로그인 화면. `INTERNAL_ERROR` 500은 전 API 공통.)
+(모든 인증 API 공통: `AUTH_TOKEN_EXPIRED` 401 → `POST /auth/refresh`로 토큰을 갱신하고 원래 요청을 다시 보냄. 갱신이 `AUTH_REFRESH_TOKEN_INVALID`면 로그인 화면. `AUTH_TOKEN_MISSING`/`AUTH_TOKEN_INVALID` 401 → 로그인 화면. `TOO_MANY_REQUESTS` 429, `INTERNAL_ERROR` 500은 전 API 공통.)
+
+### 동시 요청(연타·재시도) 시 응답
+- 같은 요청이 겹쳐 들어와도 서버가 한 번만 처리한다. 먼저 처리된 요청이 성공하고, 나머지는 그 결과를 본 에러를 받는다.
+  - `POST /letters` 같은 날짜 → `LETTER_ALREADY_EXISTS`, `POST /rewards/attendance` → `ATTENDANCE_ALREADY_CHECKED`, `POST /character-items` 같은 아이템 → `CHARACTER_ITEM_ALREADY_OWNED`, `POST /characters/graduate` → `CHARACTER_NOT_FOUND`
+  - `POST /letters/:id/reactions`, `POST /auth/kakao`, `GET /characters/me`는 겹쳐도 모두 성공한다.
+- `POST /auth/refresh`는 같은 Refresh Token으로 동시에 보내면 하나만 성공한다. 갱신 요청은 한 번만 보내고 다른 요청은 그 결과를 기다리게 한다.
+- `DUPLICATE_RESOURCE`(409)는 위에서 다루지 못한 DB 중복이 났을 때의 공통 코드다.
 
 ### POST /auth/login
 `VALIDATION_FAILED`(400), `AUTH_EMAIL_NOT_FOUND`(401), `AUTH_WRONG_PASSWORD`(401), `AUTH_SOCIAL_ACCOUNT`(401), `AUTH_PASSWORD_NOT_SET`(401), `AUTH_ACCOUNT_INACTIVE`(403)
@@ -93,11 +103,26 @@
 ### POST /auth/kakao
 `VALIDATION_FAILED`(400), `KAKAO_TOKEN_INVALID`(401), `KAKAO_PROFILE_UNAVAILABLE`(401), `KAKAO_UPSTREAM_ERROR`(502)
 
+### POST /auth/refresh
+`VALIDATION_FAILED`(400), `AUTH_REFRESH_TOKEN_INVALID`(401), `AUTH_ACCOUNT_INACTIVE`(403), `USER_NOT_FOUND`(404)
+
+### POST /auth/logout
+`VALIDATION_FAILED`(400)
+
 ### GET /auth/me
 `USER_NOT_FOUND`(404)
 
 ### PATCH /auth/me
 `VALIDATION_FAILED`(400), `USER_NOT_FOUND`(404), `QUESTION_SERIES_NOT_FOUND`(404)
+
+### DELETE /auth/me
+`USER_NOT_FOUND`(404)
+
+### GET /auth/me/settings
+`USER_NOT_FOUND`(404)
+
+### PATCH /auth/me/settings
+`VALIDATION_FAILED`(400), `USER_NOT_FOUND`(404)
 
 ### GET /character-items
 -
@@ -106,7 +131,7 @@
 `VALIDATION_FAILED`(400), `ITEM_NOT_FOUND`(404), `CHARACTER_ITEM_ALREADY_OWNED`(409), `REWARD_INSUFFICIENT`(400), `USER_NOT_FOUND`(404)
 
 ### PATCH /character-items/:id
-`VALIDATION_FAILED`(400), `CHARACTER_ITEM_NOT_OWNED`(404)
+`VALIDATION_FAILED`(400), `CHARACTER_ITEM_NOT_OWNED`(404), `USER_NOT_FOUND`(404)
 
 ### GET /characters/me
 -
@@ -158,6 +183,12 @@
 
 ### POST /letters/:id/reports
 `VALIDATION_FAILED`(400), `LETTER_REPORT_OWN_LETTER`(403), `LETTER_NOT_FOUND`(404)
+
+### GET /letter-reports (관리자)
+`VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403)
+
+### PATCH /letter-reports/:id (관리자)
+`VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403), `LETTER_REPORT_NOT_FOUND`(404)
 
 ### GET /notices
 `VALIDATION_FAILED`(400)

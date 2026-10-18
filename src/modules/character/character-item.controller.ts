@@ -108,6 +108,7 @@ export class CharacterItemController {
     ErrorCode.AUTH_TOKEN_EXPIRED,
     ErrorCode.AUTH_TOKEN_INVALID,
     ErrorCode.CHARACTER_ITEM_NOT_OWNED,
+    ErrorCode.USER_NOT_FOUND,
   )
   async updateEquip(
     @Req() request: JwtAuthRequest,

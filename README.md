@@ -1,98 +1,50 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 몽몽유치원 백엔드
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+하루 한 질문에 답하는 일지(편지) 앱의 API 서버. NestJS 11 + PostgreSQL + TypeORM.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+> 현재 개발 중이며 아직 배포하지 않았다. 남은 작업과 결정 대기 항목은 [`TODO.md`](TODO.md).
 
-## Description
+## 문서
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- [`docs/architecture.md`](docs/architecture.md): 구조와 설계 근거, 동시 요청 처리 원칙, 삭제 규칙
+- [`docs/error-codes.md`](docs/error-codes.md): 프론트용 에러 응답 가이드와 API별 에러 코드
+- [`docs/erd-figma-review.md`](docs/erd-figma-review.md): ERD ↔ Figma 점검과 화면별 API 매핑
+- Swagger: 서버 실행 후 `http://localhost:4000/api-docs` (JSON: `/api-docs-json`)
 
-## Project setup
+## 시작하기
 
 ```bash
-$ pnpm install
+pnpm install
+cp .env/.env.example .env/development.env   # DB 접속 정보, JWT_SECRET 채우기
+createdb mongmong_kindergarten                # DB_DATABASE와 같은 이름
+pnpm dev                                      # synchronize=true면 스키마 자동 생성
+pnpm seed:dev                                 # 샘플 질문 365개 + 샘플 아이템
 ```
 
-## Compile and run the project
+- API 경로는 `/api/v1` 아래에 있다. 헬스체크: `GET /api/v1/health`
+- 관리자 API(아이템·공지·사용자·신고 처리)는 `user.role = 'admin'`인 계정만 쓸 수 있다. 관리자 계정은 DB에서 직접 바꾼다.
+- 셸 환경변수가 `.env` 파일보다 우선한다. 예: `DB_DATABASE=other_db pnpm dev`
+
+## 테스트
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm test        # 서비스 단위 테스트 (DB 불필요)
+pnpm test:e2e    # 실제 PostgreSQL에 붙는 테스트 (동시 요청, 토큰, 신고 처리)
 ```
 
-## Run tests
+e2e는 매번 스키마를 지우고 다시 만든다. 개발 DB와 다른 DB를 쓴다.
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+createdb mongmong_kindergarten_test
 ```
 
-## Deployment
+접속 정보는 `TEST_DB_HOST`, `TEST_DB_PORT`, `TEST_DB_USERNAME`, `TEST_DB_PASSWORD`, `TEST_DB_DATABASE`로 바꿀 수 있다. 기본값은 `localhost:5432`, 현재 OS 사용자, 비밀번호 없음, `mongmong_kindergarten_test`.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## 주요 스크립트
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| 스크립트 | 내용 |
+|---|---|
+| `pnpm dev` | 개발 서버 (watch) |
+| `pnpm build` / `pnpm start:prod` | 빌드 / 운영 실행 |
+| `pnpm seed:dev` | 개발 DB 샘플 데이터 (운영 환경에서는 거부) |
+| `pnpm lint` / `pnpm format` | ESLint / Prettier |
