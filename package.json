@@ -14,6 +14,7 @@
     "start:debug": "cross-env NODE_ENV=development nest start --debug --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/main",
     "seed:dev": "nest build && cross-env NODE_ENV=development node dist/scripts/seed-dev-data",
+    "import:questions": "nest build && node dist/scripts/import-questions",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
