@@ -1,17 +1,15 @@
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
+import { MoodType } from '../../enums/mood-type.enum';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
-  Max,
   MaxLength,
-  Min,
 } from 'class-validator';
 import { LocaleType } from '../../../../common/enums/locale-type.enum';
 
@@ -44,16 +42,16 @@ export class CreateLetterRequestDto {
   answer!: string;
 
   @ApiPropertyOptional({
-    description: '오늘의 기분 번호',
-    example: 1,
+    description:
+      '오늘의 기분 (good 기분 좋아, excited 신나, soso 그냥그래, angry 화가 나, sad 슬퍼, depressed 우울해)',
+    enum: MoodType,
+    enumName: 'MoodType',
+    example: MoodType.GOOD,
     nullable: true,
-    type: Number,
   })
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(10)
-  moodNumber?: number | null;
+  @IsEnum(MoodType)
+  mood?: MoodType | null;
 
   @ApiPropertyOptional({
     description:

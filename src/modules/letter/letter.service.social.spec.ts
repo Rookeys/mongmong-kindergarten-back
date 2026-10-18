@@ -3,6 +3,7 @@ import { LetterReactionType } from './enums/letter-reaction-type.enum';
 import { LetterReportReasonType } from './enums/letter-report-reason-type.enum';
 import { LetterReportStatus } from './enums/letter-report-status.enum';
 import { LetterService } from './letter.service';
+import { MoodType } from './enums/mood-type.enum';
 
 type RepoMock = {
   findOneBy: jest.Mock;
@@ -186,7 +187,7 @@ describe('LetterService.update', () => {
       id: 'l1',
       userId: 'owner',
       answer: '원래 내용',
-      moodNumber: null,
+      mood: null,
       isPrivate: true,
       isPrivateSns: true,
       createdDate,
@@ -264,8 +265,8 @@ describe('LetterService.findCalendar', () => {
   it('일지가 있는 날짜를 날짜·일지 ID·기분으로 내려준다', async () => {
     const letterRepo = createRepoMock();
     letterRepo.find.mockResolvedValue([
-      { id: 'l2', moodNumber: 2, letterDate: '2026-05-05' },
-      { id: 'l3', moodNumber: null, letterDate: '2026-05-06' },
+      { id: 'l2', mood: MoodType.SAD, letterDate: '2026-05-05' },
+      { id: 'l3', mood: null, letterDate: '2026-05-06' },
     ]);
     const service = buildService({ letter: letterRepo });
 
@@ -275,8 +276,8 @@ describe('LetterService.findCalendar', () => {
     });
 
     expect(result).toEqual([
-      { date: '2026-05-05', letterId: 'l2', moodNumber: 2 },
-      { date: '2026-05-06', letterId: 'l3', moodNumber: null },
+      { date: '2026-05-05', letterId: 'l2', mood: MoodType.SAD },
+      { date: '2026-05-06', letterId: 'l3', mood: null },
     ]);
   });
 });

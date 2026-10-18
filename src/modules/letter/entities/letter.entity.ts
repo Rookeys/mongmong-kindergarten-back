@@ -13,6 +13,7 @@ import {
   UpdateDateColumn,
   Unique,
 } from 'typeorm';
+import { MoodType } from '../enums/mood-type.enum';
 import { AiReply } from './ai-reply.entity';
 import { LetterReaction } from './letter-reaction.entity';
 import { LetterReport } from './letter-report.entity';
@@ -48,8 +49,8 @@ export class Letter {
   @Column({ type: 'text' })
   answer!: string;
 
-  @Column({ name: 'mood_number', type: 'int', nullable: true })
-  moodNumber!: number | null;
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  mood!: MoodType | null;
 
   @Column({ name: 'is_private', type: 'boolean' })
   isPrivate!: boolean;

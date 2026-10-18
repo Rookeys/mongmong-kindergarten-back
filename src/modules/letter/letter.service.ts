@@ -159,7 +159,7 @@ export class LetterService {
     return letters.map((letter) => ({
       date: letter.letterDate,
       letterId: letter.id,
-      moodNumber: letter.moodNumber,
+      mood: letter.mood,
     }));
   }
 
@@ -188,7 +188,7 @@ export class LetterService {
       throw new AppException(ErrorCode.LETTER_EDIT_EXPIRED);
     }
     letter.answer = dto.answer ?? letter.answer;
-    letter.moodNumber = dto.moodNumber ?? letter.moodNumber;
+    letter.mood = dto.mood ?? letter.mood;
     letter.isPrivate = dto.isPrivate ?? letter.isPrivate;
     letter.isPrivateSns = dto.isPrivateSns ?? letter.isPrivateSns;
     const savedLetter = await this.letterRepository.save(letter);
@@ -255,7 +255,7 @@ export class LetterService {
         questionId: question.id,
         letterDate,
         answer: dto.answer,
-        moodNumber: dto.moodNumber ?? null,
+        mood: dto.mood ?? null,
         isPrivate: dto.isPrivate ?? setting?.setLetterIsPrivate ?? true,
         isPrivateSns:
           dto.isPrivateSns ?? setting?.setLetterIsPrivateSns ?? true,
@@ -515,7 +515,7 @@ export class LetterService {
       questionId: letter.questionId,
       letterDate: letter.letterDate,
       answer: letter.answer,
-      moodNumber: letter.moodNumber,
+      mood: letter.mood,
       isPrivate: letter.isPrivate,
       isPrivateSns: letter.isPrivateSns,
       localeType: letter.localeType,
