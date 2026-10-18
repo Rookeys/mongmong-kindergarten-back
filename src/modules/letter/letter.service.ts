@@ -93,7 +93,7 @@ export class LetterService {
 
   /**
    * 휴게실: 같은 질문에 다른 사람이 쓴 공개 일지를 최신순으로 조회한다.
-   * 내 일지, 비공개 일지, 내가 차단한 사용자의 일지는 제외한다.
+   * 내 일지, 비공개 일지, 내가 차단한 사용자의 일지, 신고가 인정된(resolved) 일지는 제외한다.
    */
   async findPublic(
     userId: string,
@@ -108,6 +108,10 @@ export class LetterService {
       .andWhere('letter.userId != :userId', { userId })
       .andWhere(
         'letter.userId NOT IN (SELECT ub.blocked_user_id FROM user_block ub WHERE ub.blocker_user_id = :userId)',
+      )
+      .andWhere(
+        'NOT EXISTS (SELECT 1 FROM letter_report lr WHERE lr.letter_id = letter.id AND lr.status = :resolvedStatus)',
+        { resolvedStatus: LetterReportStatus.RESOLVED },
       )
       .orderBy('letter.createdDate', 'DESC')
       .take(query.take ?? DEFAULT_LETTERS_TAKE)

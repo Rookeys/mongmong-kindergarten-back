@@ -45,6 +45,7 @@ export enum ErrorCode {
   // 일지/AI 답장
   LETTER_NOT_FOUND = 'LETTER_NOT_FOUND',
   LETTER_REPORT_OWN_LETTER = 'LETTER_REPORT_OWN_LETTER',
+  LETTER_REPORT_NOT_FOUND = 'LETTER_REPORT_NOT_FOUND',
   LETTER_ALREADY_EXISTS = 'LETTER_ALREADY_EXISTS',
   LETTER_EDIT_EXPIRED = 'LETTER_EDIT_EXPIRED',
   AI_REPLY_NOT_FOUND = 'AI_REPLY_NOT_FOUND',
@@ -194,6 +195,10 @@ export const ERROR_META: Record<
   [ErrorCode.LETTER_REPORT_OWN_LETTER]: {
     status: HttpStatus.FORBIDDEN,
     message: '본인 일지는 신고할 수 없습니다.',
+  },
+  [ErrorCode.LETTER_REPORT_NOT_FOUND]: {
+    status: HttpStatus.NOT_FOUND,
+    message: '신고를 찾을 수 없습니다.',
   },
   [ErrorCode.LETTER_ALREADY_EXISTS]: {
     status: HttpStatus.CONFLICT,

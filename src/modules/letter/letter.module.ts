@@ -11,6 +11,8 @@ import { LetterReaction } from './entities/letter-reaction.entity';
 import { LetterReport } from './entities/letter-report.entity';
 import { AiReplyController } from './ai-reply.controller';
 import { LetterController } from './letter.controller';
+import { LetterReportController } from './letter-report.controller';
+import { LetterReportService } from './letter-report.service';
 import { LetterService } from './letter.service';
 
 /**
@@ -30,8 +32,8 @@ import { LetterService } from './letter.service';
     QuestionModule,
     RewardModule,
   ],
-  controllers: [LetterController, AiReplyController],
-  providers: [LetterService],
+  controllers: [LetterController, AiReplyController, LetterReportController],
+  providers: [LetterService, LetterReportService],
   exports: [TypeOrmModule],
 })
 export class LetterModule {}

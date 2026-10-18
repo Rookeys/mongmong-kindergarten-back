@@ -4,6 +4,7 @@ export { GetLetterCalendarRequestDto } from './get-letter-calendar-request.dto';
 export { GetLetterCalendarResponseDto } from './get-letter-calendar-response.dto';
 export { GetLetterReactionResponseDto } from './get-letter-reaction-response.dto';
 export { GetLetterReportResponseDto } from './get-letter-report-response.dto';
+export { GetLetterReportsRequestDto } from './get-letter-reports-request.dto';
 export { GetLetterRequestDto } from './get-letter-request.dto';
 export { GetLetterResponseDto } from './get-letter-response.dto';
 export { GetLettersRequestDto } from './get-letters-request.dto';
