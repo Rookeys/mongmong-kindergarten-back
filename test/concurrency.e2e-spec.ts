@@ -8,6 +8,7 @@ import { Character } from '../src/modules/character/entities/character.entity';
 import { CharacterItemMap } from '../src/modules/character/entities/character-item-map.entity';
 import { GraduationCard } from '../src/modules/character/entities/graduation-card.entity';
 import { CharacterStatus } from '../src/modules/character/enums/character-status.enum';
+import { addYearsToDateString } from '../src/modules/character/utils/add-years-to-date-string.util';
 import { LetterReaction } from '../src/modules/letter/entities/letter-reaction.entity';
 import { LetterReactionType } from '../src/modules/letter/enums/letter-reaction-type.enum';
 import { LetterService } from '../src/modules/letter/letter.service';
@@ -92,6 +93,13 @@ describe('동시 요청(중복 POST)', () => {
   it('졸업을 동시에 보내도 졸업 카드 1장, 새 캐릭터 1개만 생긴다', async () => {
     const user = await createUser(moduleRef);
     await characterService.findOrCreateMine(user.id);
+    // 1년 사이클이 끝난 캐릭터로 만든다
+    await dataSource
+      .getRepository(Character)
+      .update(
+        { userId: user.id },
+        { cycleStartDate: addYearsToDateString(toKstDateString(), -1) },
+      );
 
     const { fulfilled, rejected } = await runConcurrently(
       repeat(3, () => characterService.graduate(user.id)),

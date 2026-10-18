@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
+import { MoodType } from '../../letter/enums/mood-type.enum';
 import { Character } from './character.entity';
 
 /**
@@ -48,6 +49,22 @@ export class GraduationCard {
 
   @Column({ name: 'level_snapshot', type: 'int' })
   levelSnapshot!: number;
+
+  @Column({ name: 'character_name_snapshot', type: 'varchar', length: 50 })
+  characterNameSnapshot!: string;
+
+  /** 사이클 동안 보낸 편지 수 */
+  @Column({ name: 'letter_count_snapshot', type: 'int' })
+  letterCountSnapshot!: number;
+
+  /** 사이클 동안 가장 많이 보낸 기분 (기분을 고른 편지가 없으면 null) */
+  @Column({
+    name: 'top_mood_snapshot',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  topMoodSnapshot!: MoodType | null;
 
   @Column({
     name: 'equipped_items_snapshot',

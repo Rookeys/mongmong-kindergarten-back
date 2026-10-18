@@ -7,6 +7,7 @@ import { toKstDateString } from '../../src/common/utils/to-kst-date-string.util'
 import { AuthModule } from '../../src/modules/auth/auth.module';
 import { KakaoAuthService } from '../../src/modules/auth/services/kakao-auth.service';
 import { CharacterModule } from '../../src/modules/character/character.module';
+import { CharacterType } from '../../src/modules/character/entities/character-type.entity';
 import { Item } from '../../src/modules/item/entities/item.entity';
 import { ItemType } from '../../src/modules/item/enums/item-type.enum';
 import { ItemModule } from '../../src/modules/item/item.module';
@@ -23,6 +24,8 @@ import { UserService } from '../../src/modules/user/user.service';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+const DEFAULT_CHARACTER_NAMES = ['몽몽이', '햄몽이', '빼몽이'];
+
 /** 카카오 API 대신 쓰는 고정 프로필 */
 export const FAKE_KAKAO_ID = 990001;
 
@@ -31,7 +34,7 @@ export const FAKE_KAKAO_ID = 990001;
  * 접속 정보: TEST_DB_HOST/PORT/USERNAME/PASSWORD/DATABASE (기본 localhost, 현재 OS 사용자, mongmong_kindergarten_test)
  */
 export async function createTestModule(): Promise<TestingModule> {
-  return Test.createTestingModule({
+  const moduleRef = await Test.createTestingModule({
     imports: [
       ConfigModule.forRoot({
         isGlobal: true,
@@ -64,6 +67,11 @@ export async function createTestModule(): Promise<TestingModule> {
       extractEmail: () => null,
     })
     .compile();
+  await moduleRef
+    .get(DataSource)
+    .getRepository(CharacterType)
+    .save(DEFAULT_CHARACTER_NAMES.map((name) => ({ name })));
+  return moduleRef;
 }
 
 let userSequence = 0;

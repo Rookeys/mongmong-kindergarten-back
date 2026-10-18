@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { CharacterStatus } from '../enums/character-status.enum';
 import { CharacterItemMap } from './character-item-map.entity';
+import { CharacterType } from './character-type.entity';
 import { GraduationCard } from './graduation-card.entity';
 
 /**
@@ -34,11 +35,18 @@ export class Character {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @Column({ type: 'int', default: 1 })
-  level!: number;
+  @Column({ name: 'character_type_id', type: 'bigint' })
+  characterTypeId!: string;
 
-  @Column({ type: 'int', default: 0 })
-  experience!: number;
+  @ManyToOne(() => CharacterType, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'character_type_id' })
+  characterType!: CharacterType;
+
+  /**
+   * 키우기 시작한 날(KST). 1년 뒤가 졸업일이다. 레벨은 이 기간에 쓴 편지 수로 계산한다(컬럼 없음)
+   */
+  @Column({ name: 'cycle_start_date', type: 'date' })
+  cycleStartDate!: string;
 
   @Column({ type: 'varchar', length: 20 })
   status!: CharacterStatus;

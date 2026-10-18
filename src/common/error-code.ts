@@ -59,6 +59,9 @@ export enum ErrorCode {
   CHARACTER_ITEM_NOT_OWNED = 'CHARACTER_ITEM_NOT_OWNED',
   REWARD_INSUFFICIENT = 'REWARD_INSUFFICIENT',
   CHARACTER_NOT_FOUND = 'CHARACTER_NOT_FOUND',
+  CHARACTER_GRADUATION_NOT_READY = 'CHARACTER_GRADUATION_NOT_READY',
+  CHARACTER_TYPE_NOT_FOUND = 'CHARACTER_TYPE_NOT_FOUND',
+  CHARACTER_TYPE_NOT_REGISTERED = 'CHARACTER_TYPE_NOT_REGISTERED',
 
   // 리워드
   ATTENDANCE_ALREADY_CHECKED = 'ATTENDANCE_ALREADY_CHECKED',
@@ -249,6 +252,18 @@ export const ERROR_META: Record<
     message: '졸업 가능한 캐릭터를 찾을 수 없습니다.',
   },
 
+  [ErrorCode.CHARACTER_GRADUATION_NOT_READY]: {
+    status: HttpStatus.CONFLICT,
+    message: '아직 졸업할 수 없습니다.',
+  },
+  [ErrorCode.CHARACTER_TYPE_NOT_FOUND]: {
+    status: HttpStatus.NOT_FOUND,
+    message: '캐릭터 종류를 찾을 수 없습니다.',
+  },
+  [ErrorCode.CHARACTER_TYPE_NOT_REGISTERED]: {
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    message: '배정할 캐릭터 종류가 등록되어 있지 않습니다.',
+  },
   [ErrorCode.ATTENDANCE_ALREADY_CHECKED]: {
     status: HttpStatus.CONFLICT,
     message: '오늘은 이미 출석체크를 했습니다.',
