@@ -2,6 +2,8 @@ import { TestingModule } from '@nestjs/testing';
 import { ErrorCode } from '../src/common/error-code';
 import { LocaleType } from '../src/common/enums/locale-type.enum';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { KakaoAuthService } from '../src/modules/auth/services/kakao-auth.service';
+import { UserStatus } from '../src/modules/user/enums/user-status.enum';
 import { UserService } from '../src/modules/user/user.service';
 import { createTestModule, createUser } from './support/create-test-module';
 
@@ -18,6 +20,10 @@ describe('인증 토큰과 내 계정', () => {
 
   afterAll(async () => {
     await moduleRef.close();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   async function loginNewUser(): Promise<{
@@ -91,5 +97,50 @@ describe('인증 토큰과 내 계정', () => {
       setLetterIsPrivateSns: true,
       pushEnabled: false,
     });
+  });
+
+  it('탈퇴하면 같은 이메일로 다시 가입할 수 있다', async () => {
+    const user = await createUser(moduleRef);
+    const email = user.email as string;
+
+    await authService.withdraw(user.id);
+    const rejoined = await userService.create({
+      email,
+      password: 'password123',
+      nickname: '재가입',
+    });
+
+    expect(rejoined.id).not.toBe(user.id);
+    expect(rejoined.email).toBe(email);
+  });
+
+  it('카카오로 탈퇴한 뒤 다시 로그인하면 새 계정으로 가입된다', async () => {
+    const kakaoAuthService = moduleRef.get(KakaoAuthService);
+    jest
+      .spyOn(kakaoAuthService, 'fetchUserProfile')
+      .mockResolvedValue({ id: 770001 });
+    const first = await authService.loginWithKakao('token');
+
+    await authService.withdraw(first.user.id);
+    const second = await authService.loginWithKakao('token');
+
+    expect(second.user.id).not.toBe(first.user.id);
+    expect(second.user.status).toBe(UserStatus.ACTIVE);
+  });
+
+  it('카카오 이메일이 이미 다른 계정에 있으면 이메일 없이 가입된다', async () => {
+    const localUser = await createUser(moduleRef);
+    const kakaoAuthService = moduleRef.get(KakaoAuthService);
+    jest
+      .spyOn(kakaoAuthService, 'fetchUserProfile')
+      .mockResolvedValue({ id: 770002 });
+    jest
+      .spyOn(kakaoAuthService, 'extractEmail')
+      .mockReturnValue(localUser.email);
+
+    const response = await authService.loginWithKakao('token');
+
+    expect(response.user.id).not.toBe(localUser.id);
+    expect(response.user.email).toBeNull();
   });
 });

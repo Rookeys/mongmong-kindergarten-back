@@ -124,11 +124,7 @@ export class AuthService {
       throw new AppException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID);
     }
     const user = await this.userService.findById(storedToken.userId);
-    if (user.status !== UserStatus.ACTIVE) {
-      throw new AppException(ErrorCode.AUTH_ACCOUNT_INACTIVE, {
-        status: user.status,
-      });
-    }
+    this.ensureActive(user);
     return this.createAuthTokenResponse(
       this.userService.mapUserToResponse(user),
     );
@@ -173,6 +169,7 @@ export class AuthService {
     const providerId = String(kakaoUserProfile.id);
     const existingUser = await this.findKakaoUser(providerId);
     if (existingUser) {
+      this.ensureActive(existingUser);
       return this.updateKakaoUserProfile(existingUser, kakaoUserProfile);
     }
     try {
@@ -198,11 +195,24 @@ export class AuthService {
     kakaoUserProfile: KakaoUserProfile,
     providerId: string,
   ): Promise<User> {
+    const email = this.kakaoAuthService.extractEmail(kakaoUserProfile);
+    // 카카오가 주 로그인이다. 이메일이 이미 다른 계정에 있으면 가입을 막지 않고 이메일 없이 가입시킨다
+    const isEmailTaken =
+      email !== null && (await this.userRepository.existsBy({ email }));
     return this.userService.createSocialUser({
-      email: this.kakaoAuthService.extractEmail(kakaoUserProfile),
+      email: isEmailTaken ? null : email,
       loginType: LoginType.KAKAO,
       providerId,
     });
+  }
+
+  /** 관리자가 비활성화한 계정은 로그인할 수 없다. 탈퇴 계정은 식별값이 비워져 여기까지 오지 않는다 */
+  private ensureActive(user: User): void {
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new AppException(ErrorCode.AUTH_ACCOUNT_INACTIVE, {
+        status: user.status,
+      });
+    }
   }
 
   private async updateKakaoUserProfile(

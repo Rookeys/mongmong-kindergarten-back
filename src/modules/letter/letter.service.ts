@@ -28,6 +28,7 @@ import { RewardEntry } from '../reward/types/reward-entry.type';
 import { QuestionService } from '../question/question.service';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
+import { UserStatus } from '../user/enums/user-status.enum';
 import { UserSetting } from '../user/entities/user-setting.entity';
 import {
   CreateLetterReactionRequestDto,
@@ -95,7 +96,7 @@ export class LetterService {
 
   /**
    * 휴게실: 같은 질문에 다른 사람이 쓴 공개 일지를 최신순으로 조회한다.
-   * 내 일지, 비공개 일지, 내가 차단한 사용자의 일지, 신고가 인정된(resolved) 일지는 제외한다.
+   * 내 일지, 비공개 일지, 내가 차단한 사용자의 일지, 신고가 인정된(resolved) 일지, 탈퇴·비활성 사용자의 일지는 제외한다.
    */
   async findPublic(
     userId: string,
@@ -103,6 +104,9 @@ export class LetterService {
   ): Promise<GetPublicLetterResponseDto[]> {
     const letters = await this.letterRepository
       .createQueryBuilder('letter')
+      .innerJoin('letter.user', 'author', 'author.status = :activeStatus', {
+        activeStatus: UserStatus.ACTIVE,
+      })
       .where('letter.questionId = :questionId', {
         questionId: query.questionId,
       })

@@ -1,5 +1,6 @@
 import { TestingModule } from '@nestjs/testing';
 import { toKstDateString } from '../src/common/utils/to-kst-date-string.util';
+import { AuthService } from '../src/modules/auth/auth.service';
 import { LetterService } from '../src/modules/letter/letter.service';
 import { UserService } from '../src/modules/user/user.service';
 import {
@@ -46,5 +47,22 @@ describe('일지 공개 여부와 내 설정', () => {
       setLetterIsPrivateSns: false,
     });
     expect(nextLetter).toMatchObject({ isPrivate: false, isPrivateSns: false });
+  });
+
+  it('탈퇴한 사용자의 공개 일지는 휴게실에서 내려간다', async () => {
+    const letterService = moduleRef.get(LetterService);
+    const writer = await createUser(moduleRef);
+    const viewer = await createUser(moduleRef);
+    const letter = await letterService.create(writer.id, {
+      answer: '탈퇴할 사람의 일지',
+      isPrivate: false,
+    });
+
+    await moduleRef.get(AuthService).withdraw(writer.id);
+    const publicLetters = await letterService.findPublic(viewer.id, {
+      questionId: letter.questionId,
+    });
+
+    expect(publicLetters.map((item) => item.id)).not.toContain(letter.id);
   });
 });

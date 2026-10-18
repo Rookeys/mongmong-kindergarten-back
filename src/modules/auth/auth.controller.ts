@@ -123,6 +123,7 @@ export class AuthController {
     ErrorCode.KAKAO_TOKEN_INVALID,
     ErrorCode.KAKAO_PROFILE_UNAVAILABLE,
     ErrorCode.KAKAO_UPSTREAM_ERROR,
+    ErrorCode.AUTH_ACCOUNT_INACTIVE,
   )
   async kakaoLogin(
     @Body() dto: KakaoLoginRequestDto,
@@ -223,7 +224,7 @@ export class AuthController {
   @ApiOperation({
     summary: '본인 탈퇴',
     description:
-      '계정을 소프트 삭제(status=deleted)하고 모든 기기의 Refresh Token을 폐기한다.',
+      '계정을 소프트 삭제(status=deleted)하고 모든 기기의 Refresh Token을 폐기한다. 이메일·카카오 연결을 비우므로 같은 이메일·카카오 계정으로 새로 가입할 수 있다(이전 기록은 이어지지 않음). 탈퇴한 사용자의 일지는 휴게실에서 내려간다.',
   })
   @ApiOkResponse({ description: '탈퇴 성공', type: DeleteUserResponseDto })
   @ApiErrors(

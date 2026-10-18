@@ -147,12 +147,14 @@ export class UserService {
   }
 
   /**
-   * 사용자를 소프트 삭제한다.
+   * 사용자를 소프트 삭제한다. 같은 이메일·카카오 계정으로 다시 가입할 수 있도록 로그인 식별값을 비운다.
    */
   async remove(userId: string): Promise<DeleteUserResponseDto> {
     const user = await this.findById(userId);
     user.status = UserStatus.DELETED;
     user.deletedRequestAt = new Date();
+    user.email = null;
+    user.providerId = null;
     await this.userRepository.save(user);
     return {
       message: '사용자 삭제를 완료했습니다.',
