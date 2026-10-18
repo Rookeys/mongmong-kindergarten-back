@@ -12,6 +12,13 @@ export class AuthTokenResponseDto {
   accessToken!: string;
 
   @ApiProperty({
+    description:
+      'Refresh Token. Access Token이 만료되면 POST /auth/refresh로 새 토큰 쌍을 받는다. 갱신하면 이전 값은 못 쓴다',
+    example: 'kM2x9...',
+  })
+  refreshToken!: string;
+
+  @ApiProperty({
     description: '로그인한 사용자 정보',
     type: GetUserResponseDto,
   })

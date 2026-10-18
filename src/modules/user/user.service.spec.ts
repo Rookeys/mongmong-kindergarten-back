@@ -49,7 +49,12 @@ function buildService(managerMock: ReturnType<typeof createManagerMock>) {
   const dataSource = {
     transaction: (cb: (manager: unknown) => unknown) => cb(managerMock.manager),
   } as unknown as DataSource;
-  return new UserService(userRepository, questionSeriesRepository, dataSource);
+  return new UserService(
+    userRepository,
+    {} as never,
+    questionSeriesRepository,
+    dataSource,
+  );
 }
 
 describe('UserService.create (친구 초대 코드)', () => {

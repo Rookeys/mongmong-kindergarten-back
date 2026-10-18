@@ -25,6 +25,7 @@ export enum ErrorCode {
   AUTH_TOKEN_MISSING = 'AUTH_TOKEN_MISSING',
   AUTH_TOKEN_EXPIRED = 'AUTH_TOKEN_EXPIRED',
   AUTH_TOKEN_INVALID = 'AUTH_TOKEN_INVALID',
+  AUTH_REFRESH_TOKEN_INVALID = 'AUTH_REFRESH_TOKEN_INVALID',
   FORBIDDEN_ROLE = 'FORBIDDEN_ROLE',
   KAKAO_TOKEN_INVALID = 'KAKAO_TOKEN_INVALID',
   KAKAO_PROFILE_UNAVAILABLE = 'KAKAO_PROFILE_UNAVAILABLE',
@@ -134,6 +135,10 @@ export const ERROR_META: Record<
   [ErrorCode.AUTH_TOKEN_INVALID]: {
     status: HttpStatus.UNAUTHORIZED,
     message: '유효하지 않은 인증 토큰입니다.',
+  },
+  [ErrorCode.AUTH_REFRESH_TOKEN_INVALID]: {
+    status: HttpStatus.UNAUTHORIZED,
+    message: '로그인이 만료되었습니다. 다시 로그인해주세요.',
   },
   [ErrorCode.FORBIDDEN_ROLE]: {
     status: HttpStatus.FORBIDDEN,

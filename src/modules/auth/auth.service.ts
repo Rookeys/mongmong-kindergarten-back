@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { Repository } from 'typeorm';
+import { createHash, randomBytes } from 'crypto';
+import { LessThan, Repository } from 'typeorm';
 import { AppException } from '../../common/app-exception';
 import { ErrorCode } from '../../common/error-code';
 import { GetUserResponseDto } from '../user/dto/get/get-user-response.dto';
@@ -11,10 +12,16 @@ import { CreateUserRequestDto } from '../user/dto/post/create-user-request.dto';
 import { User } from '../user/entities/user.entity';
 import { LoginType } from '../user/enums/login-type.enum';
 import { UserStatus } from '../user/enums/user-status.enum';
+import { DeleteUserResponseDto } from '../user/dto/delete/delete-user-response.dto';
 import { UserService } from '../user/user.service';
-import { JWT_ACCESS_EXPIRES_IN_SECONDS } from './constants/token.constants';
+import {
+  JWT_ACCESS_EXPIRES_IN_SECONDS,
+  REFRESH_TOKEN_BYTES,
+  REFRESH_TOKEN_EXPIRES_IN_DAYS,
+} from './constants/token.constants';
 import { AuthTokenResponseDto } from './dto/auth-token-response.dto';
 import { JwtPayloadDto } from './dto/jwt-payload.dto';
+import { RefreshToken } from './entities/refresh-token.entity';
 import { KakaoAuthService } from './services/kakao-auth.service';
 import type { KakaoUserProfile } from './types/kakao-user-profile.type';
 
@@ -25,6 +32,8 @@ const LOGIN_TYPE_LABEL: Record<LoginType, string> = {
 
 type LoginUser = Pick<GetUserResponseDto, 'id' | 'email' | 'role'>;
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 /**
  * 로컬/카카오 인증 및 토큰 발급 서비스
  */
@@ -33,6 +42,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly kakaoAuthService: KakaoAuthService,
@@ -79,7 +90,7 @@ export class AuthService {
   }
 
   /**
-   * 검증된 사용자에게 Access Token을 발급한다.
+   * 검증된 사용자에게 Access/Refresh Token을 발급한다.
    */
   async login(user: GetUserResponseDto): Promise<AuthTokenResponseDto> {
     await this.touchLastLoginDate(user.id);
@@ -92,6 +103,53 @@ export class AuthService {
    */
   async register(dto: CreateUserRequestDto): Promise<GetUserResponseDto> {
     return this.userService.create(dto);
+  }
+
+  /**
+   * Refresh Token으로 새 토큰 쌍을 발급한다. 쓴 Refresh Token은 폐기한다.
+   */
+  async refresh(refreshToken: string): Promise<AuthTokenResponseDto> {
+    const tokenHash = this.hashToken(refreshToken);
+    const storedToken = await this.refreshTokenRepository.findOneBy({
+      tokenHash,
+    });
+    if (!storedToken) {
+      throw new AppException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID);
+    }
+    // 한 토큰은 한 번만 쓴다. 같은 토큰으로 동시에 갱신하면 먼저 지운 요청만 성공한다
+    const { affected } = await this.refreshTokenRepository.delete({
+      id: storedToken.id,
+    });
+    if (!affected || storedToken.expiresAt <= new Date()) {
+      throw new AppException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID);
+    }
+    const user = await this.userService.findById(storedToken.userId);
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new AppException(ErrorCode.AUTH_ACCOUNT_INACTIVE, {
+        status: user.status,
+      });
+    }
+    return this.createAuthTokenResponse(
+      this.userService.mapUserToResponse(user),
+    );
+  }
+
+  /**
+   * Refresh Token을 폐기한다. 이미 없는 토큰이어도 성공으로 본다.
+   */
+  async logout(refreshToken: string): Promise<void> {
+    await this.refreshTokenRepository.delete({
+      tokenHash: this.hashToken(refreshToken),
+    });
+  }
+
+  /**
+   * 본인 탈퇴: 계정을 소프트 삭제하고 모든 기기의 Refresh Token을 폐기한다.
+   */
+  async withdraw(userId: string): Promise<DeleteUserResponseDto> {
+    const result = await this.userService.remove(userId);
+    await this.refreshTokenRepository.delete({ userId });
+    return result;
   }
 
   /**
@@ -165,9 +223,9 @@ export class AuthService {
     await this.userRepository.update(userId, { lastLoginDate: new Date() });
   }
 
-  private createAuthTokenResponse(
+  private async createAuthTokenResponse(
     user: GetUserResponseDto,
-  ): AuthTokenResponseDto {
+  ): Promise<AuthTokenResponseDto> {
     const loginUser: LoginUser = {
       id: user.id,
       email: user.email,
@@ -175,8 +233,30 @@ export class AuthService {
     };
     return {
       accessToken: this.createAccessToken(loginUser),
+      refreshToken: await this.issueRefreshToken(user.id),
       user,
     };
+  }
+
+  private async issueRefreshToken(userId: string): Promise<string> {
+    const refreshToken = randomBytes(REFRESH_TOKEN_BYTES).toString('base64url');
+    // 만료된 토큰은 새로 발급할 때 같이 치운다
+    await this.refreshTokenRepository.delete({
+      userId,
+      expiresAt: LessThan(new Date()),
+    });
+    await this.refreshTokenRepository.save({
+      userId,
+      tokenHash: this.hashToken(refreshToken),
+      expiresAt: new Date(
+        Date.now() + REFRESH_TOKEN_EXPIRES_IN_DAYS * MS_PER_DAY,
+      ),
+    });
+    return refreshToken;
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   private createAccessToken(user: LoginUser): string {

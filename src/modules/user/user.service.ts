@@ -11,8 +11,10 @@ import {
   CreateUserRequestDto,
   DeleteUserResponseDto,
   GetUserResponseDto,
+  GetUserSettingResponseDto,
   GetUsersRequestDto,
   UpdateUserRequestDto,
+  UpdateUserSettingRequestDto,
 } from './dto';
 import { User } from './entities/user.entity';
 import { UserInvite } from './entities/user-invite.entity';
@@ -30,6 +32,8 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(UserSetting)
+    private readonly userSettingRepository: Repository<UserSetting>,
     @InjectRepository(QuestionSeries)
     private readonly questionSeriesRepository: Repository<QuestionSeries>,
     private readonly dataSource: DataSource,
@@ -157,6 +161,27 @@ export class UserService {
   }
 
   /**
+   * 내 설정을 조회한다.
+   */
+  async findSetting(userId: string): Promise<GetUserSettingResponseDto> {
+    const setting = await this.findSettingEntity(userId);
+    return this.mapSettingToResponse(setting);
+  }
+
+  /**
+   * 내 설정을 부분 수정한다.
+   */
+  async updateSetting(
+    userId: string,
+    dto: UpdateUserSettingRequestDto,
+  ): Promise<GetUserSettingResponseDto> {
+    const setting = await this.findSettingEntity(userId);
+    Object.assign(setting, dto);
+    const savedSetting = await this.userSettingRepository.save(setting);
+    return this.mapSettingToResponse(savedSetting);
+  }
+
+  /**
    * User 엔티티를 응답 DTO로 변환한다.
    */
   mapUserToResponse(user: User): GetUserResponseDto {
@@ -176,6 +201,28 @@ export class UserService {
       deletedRequestAt: user.deletedRequestAt,
       createdDate: user.createdDate,
       updatedDate: user.updatedDate,
+    };
+  }
+
+  /** 설정은 가입할 때 같이 만든다 */
+  private async findSettingEntity(userId: string): Promise<UserSetting> {
+    const setting = await this.userSettingRepository.findOneBy({ userId });
+    if (!setting) {
+      throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+        userId: userId,
+      });
+    }
+    return setting;
+  }
+
+  private mapSettingToResponse(
+    setting: UserSetting,
+  ): GetUserSettingResponseDto {
+    return {
+      localeType: setting.localeType,
+      setLetterIsPrivate: setting.setLetterIsPrivate,
+      setLetterIsPrivateSns: setting.setLetterIsPrivateSns,
+      pushEnabled: setting.pushEnabled,
     };
   }
 
