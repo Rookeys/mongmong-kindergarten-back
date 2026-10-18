@@ -12,7 +12,7 @@
 - 표기: 🔴 구조가 달라 결정이 필요 · 🟠 값/정책 불일치 · 🟡 어색하거나 확인하면 좋은 것 · ✅ 이번에 반영함
 
 > **2026-10-18 이후 반영 현황** (`feat/todo-cleanup`): 이 문서는 작성 시점 기준이라 아래 항목은 이미 해결됐다. 남은 일은 `TODO.md`가 기준이다.
-> - 3-11 설정 API: `GET/PATCH /auth/me/settings` 추가 (화면은 아직 없음)
+> - 3-11 설정 API: `GET/PATCH /auth/me/settings` 추가 (화면은 아직 없음). 작성 후 공개·SNS 소개 선택은 그 일지와 내 설정에 함께 저장되고 다음 일지의 기본값이 된다
 > - 4장 `characters.use_yn` 제거, 본인 탈퇴 `DELETE /auth/me`·로그아웃 `POST /auth/logout` 추가
 > - 5-3 인덱스, 5-4 `user.friend_invite_code` 제거, 5-5 `user.email` nullable, 5-6 `ai_reply.user_id` 제거, 5-8 아이템 구매도 `reward_history`에 음수로 기록, 5-10 일시 컬럼 `timestamptz`
 > - 6-5 리프레시 토큰: `POST /auth/refresh` 추가

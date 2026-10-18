@@ -5,6 +5,7 @@ import { QuestionModule } from '../question/question.module';
 import { RewardModule } from '../reward/reward.module';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
+import { UserSetting } from '../user/entities/user-setting.entity';
 import { AiReply } from './entities/ai-reply.entity';
 import { Letter } from './entities/letter.entity';
 import { LetterReaction } from './entities/letter-reaction.entity';
@@ -27,6 +28,7 @@ import { LetterService } from './letter.service';
       LetterReport,
       User,
       UserInvite,
+      UserSetting,
     ]),
     AuthModule,
     QuestionModule,

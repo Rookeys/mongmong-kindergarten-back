@@ -280,8 +280,9 @@ export class UserService {
     return {
       user,
       localeType: LocaleType.KO,
-      setLetterIsPrivate: false,
-      setLetterIsPrivateSns: false,
+      // 처음 쓰는 일지가 공개 여부를 묻기 전에 휴게실·SNS에 노출되지 않도록 비공개로 시작
+      setLetterIsPrivate: true,
+      setLetterIsPrivateSns: true,
       pushEnabled: true,
     };
   }

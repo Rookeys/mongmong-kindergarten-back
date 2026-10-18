@@ -57,18 +57,17 @@ export class CreateLetterRequestDto {
 
   @ApiPropertyOptional({
     description:
-      '비공개 여부 (미지정 시 true. 공개는 작성 후 PATCH /letters/:id로 전환)',
+      '비공개 여부. 미지정 시 내 설정(setLetterIsPrivate, 마지막 선택)을 따른다. 작성 후 "답장을 공개할까요?"의 선택은 PATCH /letters/:id로 보낸다',
     example: true,
-    default: true,
   })
   @IsOptional()
   @IsBoolean()
   isPrivate?: boolean;
 
   @ApiPropertyOptional({
-    description: 'SNS 공유 비공개 여부 (미지정 시 true)',
+    description:
+      'SNS 공유 비공개 여부. 미지정 시 내 설정(setLetterIsPrivateSns, 마지막 선택)을 따른다',
     example: true,
-    default: true,
   })
   @IsOptional()
   @IsBoolean()

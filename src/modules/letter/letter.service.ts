@@ -27,6 +27,7 @@ import { RewardEntry } from '../reward/types/reward-entry.type';
 import { QuestionService } from '../question/question.service';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
+import { UserSetting } from '../user/entities/user-setting.entity';
 import {
   CreateLetterReactionRequestDto,
   CreateLetterReportRequestDto,
@@ -159,6 +160,7 @@ export class LetterService {
 
   /**
    * 내 일지를 부분 수정한다. 본문(answer)은 작성 당일(KST)에만 고칠 수 있다.
+   * 공개 여부를 바꾸면 그 선택을 내 설정(set_letter_is_private(_sns))에도 저장해 다음 일지의 기본값으로 쓴다.
    */
   async update(
     userId: string,
@@ -185,6 +187,7 @@ export class LetterService {
     letter.isPrivate = dto.isPrivate ?? letter.isPrivate;
     letter.isPrivateSns = dto.isPrivateSns ?? letter.isPrivateSns;
     const savedLetter = await this.letterRepository.save(letter);
+    await this.saveVisibilityAsDefault(userId, dto);
     return this.mapLetterToResponse(savedLetter);
   }
 
@@ -240,15 +243,17 @@ export class LetterService {
       }
       const isFirstLetter =
         (await manager.count(Letter, { where: { userId } })) === 0;
+      // 공개 여부는 작성 뒤에 묻는다. 묻기 전에는 내 설정(마지막 선택)을 따른다
+      const setting = await manager.findOneBy(UserSetting, { userId });
       const letter = await manager.save(Letter, {
         userId,
         questionId: question.id,
         letterDate,
         answer: dto.answer,
         moodNumber: dto.moodNumber ?? null,
-        // 공개 여부는 작성 뒤에 묻는다. 묻기 전에 휴게실에 노출되지 않도록 기본은 비공개
-        isPrivate: dto.isPrivate ?? true,
-        isPrivateSns: dto.isPrivateSns ?? true,
+        isPrivate: dto.isPrivate ?? setting?.setLetterIsPrivate ?? true,
+        isPrivateSns:
+          dto.isPrivateSns ?? setting?.setLetterIsPrivateSns ?? true,
         localeType: dto.localeType ?? LocaleType.KO,
       });
       const rewards: RewardEntry[] = isToday
@@ -269,6 +274,26 @@ export class LetterService {
       }
       return { ...this.mapLetterToResponse(letter), rewardAmount };
     });
+  }
+
+  private async saveVisibilityAsDefault(
+    userId: string,
+    dto: UpdateLetterRequestDto,
+  ): Promise<void> {
+    const patch: Partial<
+      Pick<UserSetting, 'setLetterIsPrivate' | 'setLetterIsPrivateSns'>
+    > = {
+      ...(dto.isPrivate !== undefined
+        ? { setLetterIsPrivate: dto.isPrivate }
+        : {}),
+      ...(dto.isPrivateSns !== undefined
+        ? { setLetterIsPrivateSns: dto.isPrivateSns }
+        : {}),
+    };
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
+    await this.dataSource.getRepository(UserSetting).update({ userId }, patch);
   }
 
   /**

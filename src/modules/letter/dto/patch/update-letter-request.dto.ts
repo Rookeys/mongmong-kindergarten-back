@@ -43,14 +43,19 @@ export class UpdateLetterRequestDto {
   moodNumber?: number;
 
   @ApiPropertyOptional({
-    description: '비공개 여부 (false면 휴게실에 익명으로 공개)',
+    description:
+      '비공개 여부 (false면 휴게실에 익명으로 공개). 보내면 내 설정 setLetterIsPrivate도 같은 값으로 바뀐다',
     example: false,
   })
   @IsOptional()
   @IsBoolean()
   isPrivate?: boolean;
 
-  @ApiPropertyOptional({ description: 'SNS 공유 비공개 여부', example: true })
+  @ApiPropertyOptional({
+    description:
+      'SNS 공유 비공개 여부. 보내면 내 설정 setLetterIsPrivateSns도 같은 값으로 바뀐다',
+    example: true,
+  })
   @IsOptional()
   @IsBoolean()
   isPrivateSns?: boolean;

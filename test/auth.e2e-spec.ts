@@ -87,8 +87,8 @@ describe('인증 토큰과 내 계정', () => {
 
     expect(updated).toEqual({
       localeType: LocaleType.KO,
-      setLetterIsPrivate: false,
-      setLetterIsPrivateSns: false,
+      setLetterIsPrivate: true,
+      setLetterIsPrivateSns: true,
       pushEnabled: false,
     });
   });

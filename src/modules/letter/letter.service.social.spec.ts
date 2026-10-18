@@ -27,13 +27,17 @@ function buildService(repos: {
   aiReply?: RepoMock;
   reaction?: RepoMock;
   report?: RepoMock;
+  setting?: { update: jest.Mock };
 }) {
+  const dataSource = {
+    getRepository: () => repos.setting ?? { update: jest.fn() },
+  };
   return new LetterService(
     repos.letter as never,
     (repos.aiReply ?? createRepoMock()) as never,
     (repos.reaction ?? createRepoMock()) as never,
     (repos.report ?? createRepoMock()) as never,
-    {} as never,
+    dataSource as never,
     {} as never,
     {} as never,
   );
@@ -220,12 +224,29 @@ describe('LetterService.update', () => {
       buildLetter(new Date(Date.now() - DAY_MS)),
     );
     letterRepo.save.mockImplementation((payload) => payload);
-    const service = buildService({ letter: letterRepo });
+    const settingRepo = { update: jest.fn() };
+    const service = buildService({ letter: letterRepo, setting: settingRepo });
 
     const result = await service.update('owner', 'l1', { isPrivate: false });
 
     expect(result.isPrivate).toBe(false);
     expect(result.answer).toBe('원래 내용');
+    expect(settingRepo.update).toHaveBeenCalledWith(
+      { userId: 'owner' },
+      { setLetterIsPrivate: false },
+    );
+  });
+
+  it('본문만 고치면 내 설정은 바꾸지 않는다', async () => {
+    const letterRepo = createRepoMock();
+    letterRepo.findOneBy.mockResolvedValue(buildLetter(new Date()));
+    letterRepo.save.mockImplementation((payload) => payload);
+    const settingRepo = { update: jest.fn() };
+    const service = buildService({ letter: letterRepo, setting: settingRepo });
+
+    await service.update('owner', 'l1', { answer: '고친 내용' });
+
+    expect(settingRepo.update).not.toHaveBeenCalled();
   });
 
   it('남의 일지는 찾을 수 없다', async () => {

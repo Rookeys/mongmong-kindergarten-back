@@ -151,7 +151,7 @@ export class LetterController {
   @ApiOperation({
     summary: '내 일지 부분 수정',
     description:
-      '공개 여부·기분은 언제든, 본문(answer)은 작성 당일(KST)에만 수정할 수 있다.',
+      '공개 여부·기분은 언제든, 본문(answer)은 작성 당일(KST)에만 수정할 수 있다. 공개 여부(isPrivate, isPrivateSns)를 보내면 내 설정에도 저장돼 다음 일지의 기본값이 된다.',
   })
   @ApiParam({ name: 'id', description: '편지 ID', example: '1' })
   @ApiBody({ type: UpdateLetterRequestDto })
