@@ -1,5 +1,7 @@
 import { ApiErrors } from '../../common/api-errors.decorator';
 import { ErrorCode } from '../../common/error-code';
+import { Throttle } from '@nestjs/throttler';
+import { REWARD_THROTTLE } from '../../common/constants/throttle.constants';
 import {
   Body,
   Controller,
@@ -171,6 +173,7 @@ export class LetterController {
   }
 
   @Post()
+  @Throttle(REWARD_THROTTLE)
   @ApiOperation({
     summary: '일지 작성',
     description:

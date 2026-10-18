@@ -18,6 +18,7 @@ const STATUS_CODE: Partial<Record<number, ErrorCode>> = {
   [HttpStatus.FORBIDDEN]: ErrorCode.FORBIDDEN,
   [HttpStatus.NOT_FOUND]: ErrorCode.NOT_FOUND,
   [HttpStatus.CONFLICT]: ErrorCode.CONFLICT,
+  [HttpStatus.TOO_MANY_REQUESTS]: ErrorCode.TOO_MANY_REQUESTS,
 };
 
 // PostgreSQL 에러 코드

@@ -14,6 +14,7 @@ export enum ErrorCode {
   CONFLICT = 'CONFLICT',
   DUPLICATE_RESOURCE = 'DUPLICATE_RESOURCE',
   RESOURCE_IN_USE = 'RESOURCE_IN_USE',
+  TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
   INTERNAL_ERROR = 'INTERNAL_ERROR',
 
   // 인증/인가
@@ -99,6 +100,10 @@ export const ERROR_META: Record<
   [ErrorCode.RESOURCE_IN_USE]: {
     status: HttpStatus.CONFLICT,
     message: '다른 데이터에서 사용 중이라 처리할 수 없습니다.',
+  },
+  [ErrorCode.TOO_MANY_REQUESTS]: {
+    status: HttpStatus.TOO_MANY_REQUESTS,
+    message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
   },
   [ErrorCode.INTERNAL_ERROR]: {
     status: HttpStatus.INTERNAL_SERVER_ERROR,

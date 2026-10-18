@@ -1,5 +1,7 @@
 import { ApiErrors } from '../../common/api-errors.decorator';
 import { ErrorCode } from '../../common/error-code';
+import { Throttle } from '@nestjs/throttler';
+import { AUTH_THROTTLE } from '../../common/constants/throttle.constants';
 import {
   Body,
   Controller,
@@ -61,6 +63,7 @@ export class AuthController {
    * 로컬 로그인
    */
   @Post('login')
+  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @UseGuards(LocalGuard)
   @ApiOperation({ summary: '로컬 로그인' })
@@ -85,6 +88,7 @@ export class AuthController {
    * 로컬 회원가입
    */
   @Post('register')
+  @Throttle(AUTH_THROTTLE)
   @ApiOperation({ summary: '로컬 회원가입' })
   @ApiBody({ type: RegisterRequestDto })
   @ApiCreatedResponse({
@@ -106,6 +110,7 @@ export class AuthController {
    * 카카오 로그인
    */
   @Post('kakao')
+  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '카카오 로그인',
@@ -129,6 +134,7 @@ export class AuthController {
    * 토큰 갱신
    */
   @Post('refresh')
+  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '토큰 갱신',

@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from '../auth/auth.module';
+import { DEFAULT_THROTTLE } from '../../common/constants/throttle.constants';
 import { CharacterModule } from '../character/character.module';
+import { HealthModule } from '../health/health.module';
 import { ItemModule } from '../item/item.module';
 import { LetterModule } from '../letter/letter.module';
 import { NoticeModule } from '../notice/notice.module';
@@ -32,6 +36,9 @@ import { UserModule } from '../user/user.module';
       }),
     }),
     LoggerModule.forRoot(),
+    // ponytail: IP 기준 인메모리 카운터. 서버가 여러 대가 되면 Redis 저장소로 바꾸기
+    ThrottlerModule.forRoot([DEFAULT_THROTTLE]),
+    HealthModule,
     QuestionModule,
     ItemModule,
     UserModule,
@@ -41,5 +48,6 @@ import { UserModule } from '../user/user.module';
     RewardModule,
     NoticeModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
