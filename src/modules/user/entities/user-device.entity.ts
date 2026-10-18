@@ -34,15 +34,15 @@ export class UserDevice {
   @Column({ name: 'app_version', type: 'varchar', length: 20, nullable: true })
   appVersion!: string | null;
 
-  @Column({ name: 'last_active_date', type: 'timestamp', nullable: true })
+  @Column({ name: 'last_active_date', type: 'timestamptz', nullable: true })
   lastActiveDate!: Date | null;
 
   @Column({ name: 'use_yn', type: 'boolean' })
   useYn!: boolean;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 
-  @UpdateDateColumn({ name: 'updated_date' })
+  @UpdateDateColumn({ name: 'updated_date', type: 'timestamptz' })
   updatedDate!: Date;
 }

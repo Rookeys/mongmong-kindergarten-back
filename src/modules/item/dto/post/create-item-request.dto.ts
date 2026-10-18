@@ -23,7 +23,7 @@ export class CreateItemRequestDto {
     description: '아이템 유형',
     enum: ItemType,
     enumName: 'ItemType',
-    example: ItemType.HAT,
+    example: ItemType.CLOTHES,
   })
   @IsEnum(ItemType)
   itemType!: ItemType;

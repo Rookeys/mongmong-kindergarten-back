@@ -8,8 +8,13 @@ export class JwtPayloadDto {
   @ApiProperty({ description: '사용자 ID', example: '1' })
   sub!: string;
 
-  @ApiProperty({ description: '이메일', example: 'user@example.com' })
-  email!: string;
+  @ApiProperty({
+    description: '이메일',
+    example: 'user@example.com',
+    nullable: true,
+    type: String,
+  })
+  email!: string | null;
 
   @ApiProperty({
     description: '권한',

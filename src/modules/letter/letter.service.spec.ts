@@ -10,8 +10,10 @@ import {
 } from '../reward/constants/reward-amount.constants';
 import { RewardHistory } from '../reward/entities/reward-history.entity';
 import { RewardType } from '../reward/enums/reward-type.enum';
+import { RewardService } from '../reward/reward.service';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
+import { UserSetting } from '../user/entities/user-setting.entity';
 import { Letter } from './entities/letter.entity';
 import { LetterService } from './letter.service';
 
@@ -34,6 +36,8 @@ function createManagerMock(state: {
   previousStreakLetterCount?: number;
   hasRecentStreakReward?: boolean;
   pendingInvite?: UserInvite;
+  /** 내 설정의 공개 여부 (생략하면 가입 기본값인 비공개) */
+  setting?: Pick<UserSetting, 'setLetterIsPrivate' | 'setLetterIsPrivateSns'>;
 }) {
   const savedRewardHistories: Partial<RewardHistory>[] = [];
   const savedLetters: Partial<Letter>[] = [];
@@ -49,6 +53,14 @@ function createManagerMock(state: {
           ? { id: 'existing' }
           : null;
       }
+      if (entity === UserSetting) {
+        return (
+          state.setting ?? {
+            setLetterIsPrivate: true,
+            setLetterIsPrivateSns: true,
+          }
+        );
+      }
       if (entity === UserInvite) {
         if (
           state.pendingInvite &&
@@ -61,12 +73,17 @@ function createManagerMock(state: {
       }
       throw new Error(`unexpected findOneBy entity: ${String(entity)}`);
     }),
-    findOne: jest.fn((entity: unknown) => {
-      if (entity === RewardHistory) {
-        return state.hasRecentStreakReward ? { id: 'streak' } : null;
-      }
-      throw new Error(`unexpected findOne entity: ${String(entity)}`);
-    }),
+    findOne: jest.fn(
+      (entity: unknown, options: { where: Record<string, unknown> }) => {
+        if (entity === User) {
+          return state.users.get(options.where.id as string) ?? null;
+        }
+        if (entity === RewardHistory) {
+          return state.hasRecentStreakReward ? { id: 'streak' } : null;
+        }
+        throw new Error(`unexpected findOne entity: ${String(entity)}`);
+      },
+    ),
     count: jest.fn(
       (entity: unknown, options: { where: Record<string, unknown> }) => {
         if (entity === Letter) {
@@ -121,6 +138,7 @@ function buildService(managerMock: ReturnType<typeof createManagerMock>) {
     emptyRepository,
     dataSource,
     questionService,
+    new RewardService(emptyRepository, dataSource),
   );
 }
 
@@ -151,6 +169,20 @@ describe('LetterService.create', () => {
     expect(managerMock.savedRewardHistories).toEqual([
       { userId: 'u1', type: RewardType.LETTER, amount: LETTER_REWARD_AMOUNT },
     ]);
+  });
+
+  it('공개 여부를 보내지 않으면 내 설정(마지막 선택)을 따른다', async () => {
+    const managerMock = createManagerMock({
+      users: new Map([['u1', buildUser()]]),
+      setting: { setLetterIsPrivate: false, setLetterIsPrivateSns: true },
+    });
+
+    await buildService(managerMock).create('u1', { answer: '공개로 시작' });
+
+    expect(managerMock.savedLetters[0]).toMatchObject({
+      isPrivate: false,
+      isPrivateSns: true,
+    });
   });
 
   it('같은 날짜에 이미 일지가 있으면 실패한다', async () => {

@@ -1,14 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { MoodType } from '../../enums/mood-type.enum';
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
-  IsInt,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Max,
   MaxLength,
-  Min,
 } from 'class-validator';
 
 /**
@@ -31,26 +30,30 @@ export class UpdateLetterRequestDto {
   answer?: string;
 
   @ApiPropertyOptional({
-    description: '오늘의 기분 번호',
-    example: 1,
-    minimum: 1,
-    maximum: 10,
+    description:
+      '오늘의 기분 (good 기분 좋아, excited 신나, soso 그냥그래, angry 화가 나, sad 슬퍼, depressed 우울해)',
+    enum: MoodType,
+    enumName: 'MoodType',
+    example: MoodType.GOOD,
   })
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(10)
-  moodNumber?: number;
+  @IsEnum(MoodType)
+  mood?: MoodType;
 
   @ApiPropertyOptional({
-    description: '비공개 여부 (false면 휴게실에 익명으로 공개)',
+    description:
+      '비공개 여부 (false면 휴게실에 익명으로 공개). 보내면 내 설정 setLetterIsPrivate도 같은 값으로 바뀐다',
     example: false,
   })
   @IsOptional()
   @IsBoolean()
   isPrivate?: boolean;
 
-  @ApiPropertyOptional({ description: 'SNS 공유 비공개 여부', example: true })
+  @ApiPropertyOptional({
+    description:
+      'SNS 공유 비공개 여부. 보내면 내 설정 setLetterIsPrivateSns도 같은 값으로 바뀐다',
+    example: true,
+  })
   @IsOptional()
   @IsBoolean()
   isPrivateSns?: boolean;

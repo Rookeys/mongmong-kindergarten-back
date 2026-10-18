@@ -36,6 +36,6 @@ export class UserBlock {
   @JoinColumn({ name: 'blocked_user_id' })
   blockedUser!: User;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

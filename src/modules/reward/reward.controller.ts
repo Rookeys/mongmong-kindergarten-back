@@ -1,5 +1,7 @@
 import { ApiErrors } from '../../common/api-errors.decorator';
 import { ErrorCode } from '../../common/error-code';
+import { Throttle } from '@nestjs/throttler';
+import { REWARD_THROTTLE } from '../../common/constants/throttle.constants';
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -60,6 +62,7 @@ export class RewardController {
    * 광고 시청 기록 및 리워드 지급 (출석체크 포함)
    */
   @Post('ad-view')
+  @Throttle(REWARD_THROTTLE)
   @ApiOperation({
     summary: '광고 시청 기록 및 리워드 지급',
     description:

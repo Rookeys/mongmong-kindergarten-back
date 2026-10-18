@@ -3,16 +3,21 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
+import { MoodType } from '../../letter/enums/mood-type.enum';
 import { Character } from './character.entity';
 
 /**
  * 졸업 카드 엔티티 (GRADUATION_CARD)
  */
 @Entity('graduation_card')
+@Index(['userId'])
+@Unique(['characterId'])
 export class GraduationCard {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'graduation_card_id' })
   id!: string;
@@ -39,11 +44,27 @@ export class GraduationCard {
   @JoinColumn({ name: 'character_id' })
   character!: Character;
 
-  @Column({ name: 'graduated_at', type: 'timestamp' })
+  @Column({ name: 'graduated_at', type: 'timestamptz' })
   graduatedAt!: Date;
 
   @Column({ name: 'level_snapshot', type: 'int' })
   levelSnapshot!: number;
+
+  @Column({ name: 'character_name_snapshot', type: 'varchar', length: 50 })
+  characterNameSnapshot!: string;
+
+  /** 사이클 동안 보낸 편지 수 */
+  @Column({ name: 'letter_count_snapshot', type: 'int' })
+  letterCountSnapshot!: number;
+
+  /** 사이클 동안 가장 많이 보낸 기분 (기분을 고른 편지가 없으면 null) */
+  @Column({
+    name: 'top_mood_snapshot',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  topMoodSnapshot!: MoodType | null;
 
   @Column({
     name: 'equipped_items_snapshot',
@@ -66,6 +87,6 @@ export class GraduationCard {
   @Column({ name: 'period_end', type: 'date', nullable: true })
   periodEnd!: string | null;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

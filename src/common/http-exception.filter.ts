@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { QueryFailedError } from 'typeorm';
+import { PG_UNIQUE_VIOLATION } from './utils/is-unique-violation.util';
 import { AppException } from './app-exception';
 import { ERROR_META, ErrorCode } from './error-code';
 
@@ -18,10 +19,10 @@ const STATUS_CODE: Partial<Record<number, ErrorCode>> = {
   [HttpStatus.FORBIDDEN]: ErrorCode.FORBIDDEN,
   [HttpStatus.NOT_FOUND]: ErrorCode.NOT_FOUND,
   [HttpStatus.CONFLICT]: ErrorCode.CONFLICT,
+  [HttpStatus.TOO_MANY_REQUESTS]: ErrorCode.TOO_MANY_REQUESTS,
 };
 
 // PostgreSQL 에러 코드
-const PG_UNIQUE_VIOLATION = '23505';
 const PG_FOREIGN_KEY_VIOLATION = '23503';
 
 interface ErrorBody {

@@ -2,15 +2,18 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { QuestionModule } from '../question/question.module';
-import { RewardHistory } from '../reward/entities/reward-history.entity';
+import { RewardModule } from '../reward/reward.module';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
+import { UserSetting } from '../user/entities/user-setting.entity';
 import { AiReply } from './entities/ai-reply.entity';
 import { Letter } from './entities/letter.entity';
 import { LetterReaction } from './entities/letter-reaction.entity';
 import { LetterReport } from './entities/letter-report.entity';
 import { AiReplyController } from './ai-reply.controller';
 import { LetterController } from './letter.controller';
+import { LetterReportController } from './letter-report.controller';
+import { LetterReportService } from './letter-report.service';
 import { LetterService } from './letter.service';
 
 /**
@@ -25,13 +28,14 @@ import { LetterService } from './letter.service';
       LetterReport,
       User,
       UserInvite,
-      RewardHistory,
+      UserSetting,
     ]),
     AuthModule,
     QuestionModule,
+    RewardModule,
   ],
-  controllers: [LetterController, AiReplyController],
-  providers: [LetterService],
+  controllers: [LetterController, AiReplyController, LetterReportController],
+  providers: [LetterService, LetterReportService],
   exports: [TypeOrmModule],
 })
 export class LetterModule {}

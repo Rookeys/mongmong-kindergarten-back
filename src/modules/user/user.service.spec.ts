@@ -1,6 +1,7 @@
 import { ErrorCode } from '../../common/error-code';
 import { DataSource } from 'typeorm';
 import { User } from './entities/user.entity';
+import { UserStatus } from './enums/user-status.enum';
 import { UserInvite } from './entities/user-invite.entity';
 import { UserSetting } from './entities/user-setting.entity';
 import { UserService } from './user.service';
@@ -49,7 +50,12 @@ function buildService(managerMock: ReturnType<typeof createManagerMock>) {
   const dataSource = {
     transaction: (cb: (manager: unknown) => unknown) => cb(managerMock.manager),
   } as unknown as DataSource;
-  return new UserService(userRepository, questionSeriesRepository, dataSource);
+  return new UserService(
+    userRepository,
+    {} as never,
+    questionSeriesRepository,
+    dataSource,
+  );
 }
 
 describe('UserService.create (친구 초대 코드)', () => {
@@ -67,7 +73,11 @@ describe('UserService.create (친구 초대 코드)', () => {
   });
 
   it('유효한 초대 코드로 가입하면 UserInvite가 생성된다', async () => {
-    const inviter = { id: 'inviter1', myInviteCode: 'ABCD1234' } as User;
+    const inviter = {
+      id: 'inviter1',
+      myInviteCode: 'ABCD1234',
+      status: UserStatus.ACTIVE,
+    } as User;
     const managerMock = createManagerMock({
       users: new Map([['inviter1', inviter]]),
     });

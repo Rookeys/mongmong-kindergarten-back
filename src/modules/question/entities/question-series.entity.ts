@@ -33,9 +33,9 @@ export class QuestionSeries {
   @OneToMany(() => Question, (question: Question) => question.questionSeries)
   questions!: Question[];
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 
-  @UpdateDateColumn({ name: 'updated_date' })
+  @UpdateDateColumn({ name: 'updated_date', type: 'timestamptz' })
   updatedDate!: Date;
 }

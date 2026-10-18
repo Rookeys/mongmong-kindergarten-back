@@ -31,12 +31,17 @@ export class CharacterController {
    * 내 캐릭터 조회 (없으면 새로 생성)
    */
   @Get('me')
-  @ApiOperation({ summary: '내 캐릭터 조회' })
+  @ApiOperation({
+    summary: '내 캐릭터 조회',
+    description:
+      '키우는 캐릭터가 없으면 사용 중인 종류 중 랜덤으로 새로 만든다. 레벨은 사이클 동안 쓴 편지 수로 계산한다(90통마다 +1, 최대 4). canGraduate가 true면 졸업 연출 후 POST /characters/graduate를 호출한다.',
+  })
   @ApiOkResponse({ description: '조회 성공', type: GetCharacterResponseDto })
   @ApiErrors(
     ErrorCode.AUTH_TOKEN_MISSING,
     ErrorCode.AUTH_TOKEN_EXPIRED,
     ErrorCode.AUTH_TOKEN_INVALID,
+    ErrorCode.CHARACTER_TYPE_NOT_REGISTERED,
   )
   async findMine(
     @Req() request: JwtAuthRequest,
@@ -48,7 +53,11 @@ export class CharacterController {
    * 캐릭터 졸업 처리
    */
   @Post('graduate')
-  @ApiOperation({ summary: '캐릭터 졸업 처리' })
+  @ApiOperation({
+    summary: '캐릭터 졸업 처리',
+    description:
+      '시작일부터 1년(졸업일)이 지나야 한다. 졸업 카드를 발급하고 새 캐릭터(랜덤 종류)를 오늘이 속한 사이클에서 시작한다. 산 아이템은 캐릭터에 묶여 있어 넘어가지 않는다.',
+  })
   @ApiCreatedResponse({
     description: '졸업 처리 성공',
     type: GetGraduationCardResponseDto,
@@ -58,6 +67,8 @@ export class CharacterController {
     ErrorCode.AUTH_TOKEN_EXPIRED,
     ErrorCode.AUTH_TOKEN_INVALID,
     ErrorCode.CHARACTER_NOT_FOUND,
+    ErrorCode.CHARACTER_GRADUATION_NOT_READY,
+    ErrorCode.CHARACTER_TYPE_NOT_REGISTERED,
   )
   async graduate(
     @Req() request: JwtAuthRequest,

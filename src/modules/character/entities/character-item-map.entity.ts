@@ -31,13 +31,13 @@ export class CharacterItemMap {
   @Column({ name: 'item_id', type: 'bigint' })
   itemId!: string;
 
-  @ManyToOne(() => Item, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Item, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'item_id' })
   item!: Item;
 
   @Column({ name: 'is_equipped', type: 'boolean' })
   isEquipped!: boolean;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

@@ -1,3 +1,4 @@
+import { MoodType } from '../../enums/mood-type.enum';
 import { ApiProperty } from '@nestjs/swagger';
 import { LocaleType } from '../../../../common/enums/locale-type.enum';
 
@@ -21,12 +22,14 @@ export class GetLetterResponseDto {
   answer!: string;
 
   @ApiProperty({
-    description: '오늘의 기분 번호',
-    example: 1,
+    description:
+      '오늘의 기분 (good 기분 좋아, excited 신나, soso 그냥그래, angry 화가 나, sad 슬퍼, depressed 우울해)',
+    enum: MoodType,
+    enumName: 'MoodType',
+    example: MoodType.GOOD,
     nullable: true,
-    type: Number,
   })
-  moodNumber!: number | null;
+  mood!: MoodType | null;
 
   @ApiProperty({ description: '비공개 여부', example: false })
   isPrivate!: boolean;

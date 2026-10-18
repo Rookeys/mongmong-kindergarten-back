@@ -3,15 +3,24 @@ import { LetterReactionType } from './enums/letter-reaction-type.enum';
 import { LetterReportReasonType } from './enums/letter-report-reason-type.enum';
 import { LetterReportStatus } from './enums/letter-report-status.enum';
 import { LetterService } from './letter.service';
+import { MoodType } from './enums/mood-type.enum';
 
 type RepoMock = {
   findOneBy: jest.Mock;
+  findOneByOrFail: jest.Mock;
   save: jest.Mock;
   find: jest.Mock;
+  upsert: jest.Mock;
 };
 
 function createRepoMock(): RepoMock {
-  return { findOneBy: jest.fn(), save: jest.fn(), find: jest.fn() };
+  return {
+    findOneBy: jest.fn(),
+    findOneByOrFail: jest.fn(),
+    save: jest.fn(),
+    find: jest.fn(),
+    upsert: jest.fn(),
+  };
 }
 
 function buildService(repos: {
@@ -19,19 +28,24 @@ function buildService(repos: {
   aiReply?: RepoMock;
   reaction?: RepoMock;
   report?: RepoMock;
+  setting?: { update: jest.Mock };
 }) {
+  const dataSource = {
+    getRepository: () => repos.setting ?? { update: jest.fn() },
+  };
   return new LetterService(
     repos.letter as never,
     (repos.aiReply ?? createRepoMock()) as never,
     (repos.reaction ?? createRepoMock()) as never,
     (repos.report ?? createRepoMock()) as never,
+    dataSource as never,
     {} as never,
     {} as never,
   );
 }
 
 describe('LetterService.addReaction', () => {
-  it('비공개가 아닌 타인의 편지에 처음 반응하면 새로 생성한다', async () => {
+  it('비공개가 아닌 타인의 편지에 반응하면 (편지, 사용자) 기준으로 upsert한다', async () => {
     const letterRepo = createRepoMock();
     const reactionRepo = createRepoMock();
     letterRepo.findOneBy.mockResolvedValue({
@@ -39,44 +53,13 @@ describe('LetterService.addReaction', () => {
       userId: 'owner',
       isPrivate: false,
     });
-    reactionRepo.findOneBy.mockResolvedValue(null);
-    reactionRepo.save.mockImplementation((payload) => ({
-      id: 'r1',
-      createdDate: new Date(),
-      ...payload,
-    }));
-    const service = buildService({
-      letter: letterRepo,
-      reaction: reactionRepo,
-    });
-
-    const result = await service.addReaction('viewer', 'l1', {
-      reactionType: LetterReactionType.LIKE,
-    });
-
-    expect(result.reactionType).toBe(LetterReactionType.LIKE);
-    expect(reactionRepo.save).toHaveBeenCalledWith(
-      expect.objectContaining({ letterId: 'l1', userId: 'viewer' }),
-    );
-  });
-
-  it('이미 반응한 경우 새로 만들지 않고 반응 유형을 갱신한다', async () => {
-    const letterRepo = createRepoMock();
-    const reactionRepo = createRepoMock();
-    letterRepo.findOneBy.mockResolvedValue({
-      id: 'l1',
-      userId: 'owner',
-      isPrivate: false,
-    });
-    const existing = {
+    reactionRepo.findOneByOrFail.mockResolvedValue({
       id: 'r1',
       letterId: 'l1',
       userId: 'viewer',
-      reactionType: LetterReactionType.LIKE,
+      reactionType: LetterReactionType.CHEER,
       createdDate: new Date(),
-    };
-    reactionRepo.findOneBy.mockResolvedValue(existing);
-    reactionRepo.save.mockImplementation((payload) => payload);
+    });
     const service = buildService({
       letter: letterRepo,
       reaction: reactionRepo,
@@ -87,12 +70,13 @@ describe('LetterService.addReaction', () => {
     });
 
     expect(result.reactionType).toBe(LetterReactionType.CHEER);
-    expect(reactionRepo.save).toHaveBeenCalledTimes(1);
-    expect(reactionRepo.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'r1',
+    expect(reactionRepo.upsert).toHaveBeenCalledWith(
+      {
+        letterId: 'l1',
+        userId: 'viewer',
         reactionType: LetterReactionType.CHEER,
-      }),
+      },
+      ['letterId', 'userId'],
     );
   });
 
@@ -203,7 +187,7 @@ describe('LetterService.update', () => {
       id: 'l1',
       userId: 'owner',
       answer: '원래 내용',
-      moodNumber: null,
+      mood: null,
       isPrivate: true,
       isPrivateSns: true,
       createdDate,
@@ -241,12 +225,29 @@ describe('LetterService.update', () => {
       buildLetter(new Date(Date.now() - DAY_MS)),
     );
     letterRepo.save.mockImplementation((payload) => payload);
-    const service = buildService({ letter: letterRepo });
+    const settingRepo = { update: jest.fn() };
+    const service = buildService({ letter: letterRepo, setting: settingRepo });
 
     const result = await service.update('owner', 'l1', { isPrivate: false });
 
     expect(result.isPrivate).toBe(false);
     expect(result.answer).toBe('원래 내용');
+    expect(settingRepo.update).toHaveBeenCalledWith(
+      { userId: 'owner' },
+      { setLetterIsPrivate: false },
+    );
+  });
+
+  it('본문만 고치면 내 설정은 바꾸지 않는다', async () => {
+    const letterRepo = createRepoMock();
+    letterRepo.findOneBy.mockResolvedValue(buildLetter(new Date()));
+    letterRepo.save.mockImplementation((payload) => payload);
+    const settingRepo = { update: jest.fn() };
+    const service = buildService({ letter: letterRepo, setting: settingRepo });
+
+    await service.update('owner', 'l1', { answer: '고친 내용' });
+
+    expect(settingRepo.update).not.toHaveBeenCalled();
   });
 
   it('남의 일지는 찾을 수 없다', async () => {
@@ -264,8 +265,8 @@ describe('LetterService.findCalendar', () => {
   it('일지가 있는 날짜를 날짜·일지 ID·기분으로 내려준다', async () => {
     const letterRepo = createRepoMock();
     letterRepo.find.mockResolvedValue([
-      { id: 'l2', moodNumber: 2, letterDate: '2026-05-05' },
-      { id: 'l3', moodNumber: null, letterDate: '2026-05-06' },
+      { id: 'l2', mood: MoodType.SAD, letterDate: '2026-05-05' },
+      { id: 'l3', mood: null, letterDate: '2026-05-06' },
     ]);
     const service = buildService({ letter: letterRepo });
 
@@ -275,8 +276,8 @@ describe('LetterService.findCalendar', () => {
     });
 
     expect(result).toEqual([
-      { date: '2026-05-05', letterId: 'l2', moodNumber: 2 },
-      { date: '2026-05-06', letterId: 'l3', moodNumber: null },
+      { date: '2026-05-05', letterId: 'l2', mood: MoodType.SAD },
+      { date: '2026-05-06', letterId: 'l3', mood: null },
     ]);
   });
 });

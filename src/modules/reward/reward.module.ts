@@ -17,6 +17,6 @@ import { RewardService } from './reward.service';
   ],
   controllers: [RewardController],
   providers: [RewardService],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, RewardService],
 })
 export class RewardModule {}

@@ -15,7 +15,7 @@ export class GetItemResponseDto {
     description: '아이템 유형',
     enum: ItemType,
     enumName: 'ItemType',
-    example: ItemType.HAT,
+    example: ItemType.CLOTHES,
   })
   itemType!: ItemType;
 
@@ -27,6 +27,12 @@ export class GetItemResponseDto {
 
   @ApiProperty({ description: '구매 비용(꿈조각)', example: 100 })
   cost!: number;
+
+  @ApiProperty({
+    description: '판매 중 여부 (false면 판매 중지: 상점에서 숨김)',
+    example: true,
+  })
+  isOnSale!: boolean;
 
   @ApiProperty({
     description: '생성 일시',

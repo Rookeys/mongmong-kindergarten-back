@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -21,6 +22,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtPayloadDto } from '../auth/dto/jwt-payload.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
 import { RolesGuard } from '../auth/guard/roles.guard';
 import { UserRole } from '../user/enums/user-role.enum';
@@ -33,6 +35,10 @@ import {
   UpdateItemRequestDto,
 } from './dto';
 import { ItemService } from './item.service';
+
+type JwtAuthRequest = {
+  user: JwtPayloadDto;
+};
 
 /**
  * 아이템 API 컨트롤러
@@ -49,7 +55,11 @@ export class ItemController {
    * 아이템 목록 조회
    */
   @Get()
-  @ApiOperation({ summary: '아이템 목록 조회' })
+  @ApiOperation({
+    summary: '아이템 목록 조회',
+    description:
+      '일반 사용자는 판매 중인 아이템만 받는다. 관리자는 isOnSale로 거를 수 있다.',
+  })
   @ApiOkResponse({
     description: '조회 성공',
     type: GetItemResponseDto,
@@ -62,9 +72,10 @@ export class ItemController {
     ErrorCode.AUTH_TOKEN_INVALID,
   )
   async findAll(
+    @Req() request: JwtAuthRequest,
     @Query() query: GetItemsRequestDto,
   ): Promise<GetItemResponseDto[]> {
-    return this.itemService.findAll(query);
+    return this.itemService.findAll(query, request.user.role);
   }
 
   /**
@@ -113,14 +124,18 @@ export class ItemController {
   }
 
   /**
-   * 아이템 삭제 (관리자 전용)
+   * 아이템 판매 중지 (관리자 전용)
    */
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: '아이템 삭제 (관리자용)' })
+  @ApiOperation({
+    summary: '아이템 판매 중지 (관리자용)',
+    description:
+      '행을 지우지 않고 판매만 멈춘다(isOnSale=false). 상점에서 사라지고 새로 살 수 없지만 이미 산 사람은 계속 갖고 있다. 다시 팔려면 PATCH로 isOnSale=true.',
+  })
   @ApiParam({ name: 'id', description: '아이템 ID', example: '1' })
-  @ApiOkResponse({ description: '삭제 성공', type: DeleteItemResponseDto })
+  @ApiOkResponse({ description: '중지 성공', type: DeleteItemResponseDto })
   @ApiErrors(
     ErrorCode.VALIDATION_FAILED,
     ErrorCode.AUTH_TOKEN_MISSING,
@@ -128,11 +143,10 @@ export class ItemController {
     ErrorCode.AUTH_TOKEN_INVALID,
     ErrorCode.FORBIDDEN_ROLE,
     ErrorCode.ITEM_NOT_FOUND,
-    ErrorCode.RESOURCE_IN_USE,
   )
-  async remove(
+  async stopSale(
     @Param() params: GetItemRequestDto,
   ): Promise<DeleteItemResponseDto> {
-    return this.itemService.remove(params.id);
+    return this.itemService.stopSale(params.id);
   }
 }

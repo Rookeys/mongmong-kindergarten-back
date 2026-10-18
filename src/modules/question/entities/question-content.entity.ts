@@ -34,6 +34,6 @@ export class QuestionContent {
   @Column({ type: 'text' })
   content!: string;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

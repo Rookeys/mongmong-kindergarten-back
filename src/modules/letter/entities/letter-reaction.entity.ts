@@ -41,6 +41,6 @@ export class LetterReaction {
   @Column({ name: 'reaction_type', type: 'varchar', length: 20 })
   reactionType!: LetterReactionType;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/app-exception';
 import { ErrorCode } from '../../common/error-code';
+import { assignDefined } from '../../common/utils/assign-defined.util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -10,6 +11,7 @@ import {
   GetItemsRequestDto,
   UpdateItemRequestDto,
 } from './dto';
+import { UserRole } from '../user/enums/user-role.enum';
 import { Item } from './entities/item.entity';
 
 /**
@@ -25,9 +27,16 @@ export class ItemService {
   /**
    * 아이템 목록을 조회한다.
    */
-  async findAll(query: GetItemsRequestDto): Promise<GetItemResponseDto[]> {
+  async findAll(
+    query: GetItemsRequestDto,
+    requesterRole: UserRole,
+  ): Promise<GetItemResponseDto[]> {
+    const isAdmin = requesterRole === UserRole.ADMIN;
     const items = await this.itemRepository.find({
-      where: query.itemType ? { itemType: query.itemType } : {},
+      where: {
+        ...(query.itemType ? { itemType: query.itemType } : {}),
+        isOnSale: isAdmin ? query.isOnSale : true,
+      },
       order: { createdDate: 'ASC' },
     });
     return items.map((item) => this.mapItemToResponse(item));
@@ -62,19 +71,20 @@ export class ItemService {
     dto: UpdateItemRequestDto,
   ): Promise<GetItemResponseDto> {
     const item = await this.findById(itemId);
-    Object.assign(item, dto);
+    assignDefined(item, dto);
     const savedItem = await this.itemRepository.save(item);
     return this.mapItemToResponse(savedItem);
   }
 
   /**
-   * 아이템을 삭제한다.
+   * 아이템 판매를 중지한다. 행은 지우지 않아 이미 산 사람은 계속 갖고 있다.
    */
-  async remove(itemId: string): Promise<DeleteItemResponseDto> {
-    await this.findById(itemId);
-    await this.itemRepository.delete(itemId);
+  async stopSale(itemId: string): Promise<DeleteItemResponseDto> {
+    const item = await this.findById(itemId);
+    item.isOnSale = false;
+    await this.itemRepository.save(item);
     return {
-      message: '아이템 삭제를 완료했습니다.',
+      message: '아이템 판매를 중지했습니다.',
       id: itemId,
       statusCode: 200,
     };
@@ -87,6 +97,7 @@ export class ItemService {
       itemType: item.itemType,
       imageUrl: item.imageUrl,
       cost: item.cost,
+      isOnSale: item.isOnSale,
       createdDate: item.createdDate,
       updatedDate: item.updatedDate,
     };

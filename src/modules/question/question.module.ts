@@ -7,6 +7,7 @@ import { Question } from './entities/question.entity';
 import { QuestionContent } from './entities/question-content.entity';
 import { QuestionSeries } from './entities/question-series.entity';
 import { QuestionController } from './question.controller';
+import { QuestionAdminService } from './question-admin.service';
 import { QuestionService } from './question.service';
 
 /**
@@ -24,7 +25,7 @@ import { QuestionService } from './question.service';
     AuthModule,
   ],
   controllers: [QuestionController],
-  providers: [QuestionService],
-  exports: [TypeOrmModule, QuestionService],
+  providers: [QuestionService, QuestionAdminService],
+  exports: [TypeOrmModule, QuestionService, QuestionAdminService],
 })
 export class QuestionModule {}

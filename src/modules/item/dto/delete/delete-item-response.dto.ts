@@ -6,7 +6,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class DeleteItemResponseDto {
   @ApiProperty({
     description: '메시지',
-    example: '아이템 삭제를 완료했습니다.',
+    example: '아이템 판매를 중지했습니다.',
   })
   message!: string;
 

@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -13,6 +14,7 @@ import { RewardType } from '../enums/reward-type.enum';
  * 리워드 이력 엔티티 (REWARD_HISTORY)
  */
 @Entity('reward_history')
+@Index(['userId', 'createdDate'])
 export class RewardHistory {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'reward_history_id' })
   id!: string;
@@ -32,6 +34,6 @@ export class RewardHistory {
   @Column({ type: 'int' })
   amount!: number;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 import { AppModule } from './modules/app/app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -11,6 +12,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.useLogger(app.get(Logger));
+
+  // HTTPS가 없는 개발 서버에서도 Swagger UI가 뜨도록 http 요청을 https로 바꾸는 지시는 끈다
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: { upgradeInsecureRequests: null },
+      },
+    }),
+  );
 
   const corsOrigin = process.env.CORS_ORIGIN;
   const corsMethods = process.env.CORS_METHODS;

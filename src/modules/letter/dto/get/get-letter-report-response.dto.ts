@@ -13,12 +13,13 @@ export class GetLetterReportResponseDto {
   letterId!: string;
 
   @ApiProperty({
-    description: '신고 사유',
+    description: '신고 사유 (선택하지 않았으면 null)',
     enum: LetterReportReasonType,
     enumName: 'LetterReportReasonType',
     example: LetterReportReasonType.INAPPROPRIATE,
+    nullable: true,
   })
-  reasonType!: LetterReportReasonType;
+  reasonType!: LetterReportReasonType | null;
 
   @ApiProperty({
     description: '신고 상세 사유',

@@ -37,6 +37,6 @@ export class AdViewLog {
   @Column({ name: 'reward_amount', type: 'int' })
   rewardAmount!: number;
 
-  @CreateDateColumn({ name: 'created_date' })
+  @CreateDateColumn({ name: 'created_date', type: 'timestamptz' })
   createdDate!: Date;
 }

@@ -1,18 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/app-exception';
 import { ErrorCode } from '../../common/error-code';
+import { assignDefined } from '../../common/utils/assign-defined.util';
+import { isUniqueViolation } from '../../common/utils/is-unique-violation.util';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import { BCRYPT_SALT_ROUNDS } from '../auth/constants/password.constants';
+import { Letter } from '../letter/entities/letter.entity';
 import { QuestionSeries } from '../question/entities/question-series.entity';
 import {
   CreateUserRequestDto,
   DeleteUserResponseDto,
   GetUserResponseDto,
+  GetUserSettingResponseDto,
   GetUsersRequestDto,
   UpdateUserRequestDto,
+  UpdateUserSettingRequestDto,
 } from './dto';
 import { User } from './entities/user.entity';
 import { UserInvite } from './entities/user-invite.entity';
@@ -30,6 +35,8 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(UserSetting)
+    private readonly userSettingRepository: Repository<UserSetting>,
     @InjectRepository(QuestionSeries)
     private readonly questionSeriesRepository: Repository<QuestionSeries>,
     private readonly dataSource: DataSource,
@@ -100,11 +107,13 @@ export class UserService {
    * 소셜 로그인 사용자를 생성한다.
    */
   async createSocialUser(input: {
-    email: string;
+    email: string | null;
     loginType: LoginType;
     providerId: string;
   }): Promise<User> {
-    await this.ensureEmailIsAvailable(input.email);
+    if (input.email) {
+      await this.ensureEmailIsAvailable(input.email);
+    }
     return this.dataSource.transaction(async (manager) => {
       const user = await manager.save(User, {
         email: input.email,
@@ -115,7 +124,6 @@ export class UserService {
         rewardCount: 0,
         aiReplyCycle: 0,
         myInviteCode: createInviteCode(),
-        friendInviteCode: null,
         status: UserStatus.ACTIVE,
         role: UserRole.USER,
         deletedRequestAt: null,
@@ -141,18 +149,81 @@ export class UserService {
   }
 
   /**
-   * 사용자를 소프트 삭제한다.
+   * 사용자를 소프트 삭제한다. 같은 이메일·카카오 계정으로 다시 가입할 수 있도록 로그인 식별값을 비운다.
    */
   async remove(userId: string): Promise<DeleteUserResponseDto> {
     const user = await this.findById(userId);
     user.status = UserStatus.DELETED;
     user.deletedRequestAt = new Date();
+    user.email = null;
+    user.providerId = null;
     await this.userRepository.save(user);
     return {
       message: '사용자 삭제를 완료했습니다.',
       id: userId,
       statusCode: 200,
     };
+  }
+
+  /**
+   * 친구 초대 코드를 등록한다(온보딩, 선택). 보상은 첫 일지를 쓸 때 초대한 사람·받은 사람 모두에게 지급된다.
+   * 본인 코드, 이미 등록한 경우, 이미 일지를 쓴 경우에는 등록할 수 없다.
+   */
+  async registerInviteCode(
+    userId: string,
+    friendInviteCode: string,
+  ): Promise<void> {
+    const user = await this.findById(userId);
+    const inviter = (await this.findInviterByCode(
+      this.dataSource.manager,
+      friendInviteCode,
+    )) as User;
+    if (inviter.id === user.id) {
+      throw new AppException(
+        ErrorCode.INVITE_CODE_INVALID,
+        { friendInviteCode },
+        undefined,
+        '본인 초대 코드는 입력할 수 없습니다.',
+      );
+    }
+    if (await this.dataSource.getRepository(Letter).existsBy({ userId })) {
+      throw new AppException(ErrorCode.INVITE_CODE_TOO_LATE);
+    }
+    try {
+      await this.dataSource.getRepository(UserInvite).insert({
+        inviterUserId: inviter.id,
+        inviteeUserId: user.id,
+        inviteCode: inviter.myInviteCode,
+        rewardGivenYn: false,
+      });
+    } catch (err) {
+      // user_invite(invitee_user_id) 유니크: 초대 코드는 한 번만 등록한다
+      if (isUniqueViolation(err)) {
+        throw new AppException(ErrorCode.INVITE_ALREADY_REGISTERED);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * 내 설정을 조회한다.
+   */
+  async findSetting(userId: string): Promise<GetUserSettingResponseDto> {
+    const setting = await this.findSettingEntity(userId);
+    return this.mapSettingToResponse(setting);
+  }
+
+  /**
+   * 내 설정을 부분 수정한다.
+   */
+  async updateSetting(
+    userId: string,
+    dto: UpdateUserSettingRequestDto,
+  ): Promise<GetUserSettingResponseDto> {
+    const setting = await this.findSettingEntity(userId);
+    assignDefined(setting, dto);
+    const savedSetting = await this.userSettingRepository.save(setting);
+    return this.mapSettingToResponse(savedSetting);
   }
 
   /**
@@ -168,7 +239,6 @@ export class UserService {
       rewardCount: user.rewardCount,
       aiReplyCycle: user.aiReplyCycle,
       myInviteCode: user.myInviteCode,
-      friendInviteCode: user.friendInviteCode,
       status: user.status,
       role: user.role,
       lastLoginDate: user.lastLoginDate,
@@ -176,6 +246,28 @@ export class UserService {
       deletedRequestAt: user.deletedRequestAt,
       createdDate: user.createdDate,
       updatedDate: user.updatedDate,
+    };
+  }
+
+  /** 설정은 가입할 때 같이 만든다 */
+  private async findSettingEntity(userId: string): Promise<UserSetting> {
+    const setting = await this.userSettingRepository.findOneBy({ userId });
+    if (!setting) {
+      throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
+        userId: userId,
+      });
+    }
+    return setting;
+  }
+
+  private mapSettingToResponse(
+    setting: UserSetting,
+  ): GetUserSettingResponseDto {
+    return {
+      localeType: setting.localeType,
+      setLetterIsPrivate: setting.setLetterIsPrivate,
+      setLetterIsPrivateSns: setting.setLetterIsPrivateSns,
+      pushEnabled: setting.pushEnabled,
     };
   }
 
@@ -195,6 +287,7 @@ export class UserService {
     }
     const inviter = await manager.findOneBy(User, {
       myInviteCode: friendInviteCode,
+      status: UserStatus.ACTIVE,
     });
     if (!inviter) {
       throw new AppException(
@@ -220,7 +313,6 @@ export class UserService {
       rewardCount: 0,
       aiReplyCycle: 0,
       myInviteCode: createInviteCode(),
-      friendInviteCode: dto.friendInviteCode ?? null,
       status: UserStatus.ACTIVE,
       role: UserRole.USER,
       deletedRequestAt: null,
@@ -233,8 +325,9 @@ export class UserService {
     return {
       user,
       localeType: LocaleType.KO,
-      setLetterIsPrivate: false,
-      setLetterIsPrivateSns: false,
+      // 처음 쓰는 일지가 공개 여부를 묻기 전에 휴게실·SNS에 노출되지 않도록 비공개로 시작
+      setLetterIsPrivate: true,
+      setLetterIsPrivateSns: true,
       pushEnabled: true,
     };
   }
@@ -248,9 +341,6 @@ export class UserService {
     }
     if (dto.status !== undefined) {
       user.status = dto.status;
-    }
-    if (dto.friendInviteCode !== undefined) {
-      user.friendInviteCode = dto.friendInviteCode;
     }
     if (dto.questionSeriesId !== undefined) {
       const series = await this.questionSeriesRepository.findOneBy({

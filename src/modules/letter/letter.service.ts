@@ -11,6 +11,7 @@ import {
   MoreThanOrEqual,
   Repository,
 } from 'typeorm';
+import { isUniqueViolation } from '../../common/utils/is-unique-violation.util';
 import { toKstDateString } from '../../common/utils/to-kst-date-string.util';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import {
@@ -22,9 +23,13 @@ import {
 } from '../reward/constants/reward-amount.constants';
 import { RewardHistory } from '../reward/entities/reward-history.entity';
 import { RewardType } from '../reward/enums/reward-type.enum';
+import { RewardService } from '../reward/reward.service';
+import { RewardEntry } from '../reward/types/reward-entry.type';
 import { QuestionService } from '../question/question.service';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
+import { UserStatus } from '../user/enums/user-status.enum';
+import { UserSetting } from '../user/entities/user-setting.entity';
 import {
   CreateLetterReactionRequestDto,
   CreateLetterReportRequestDto,
@@ -66,6 +71,7 @@ export class LetterService {
     private readonly letterReportRepository: Repository<LetterReport>,
     private readonly dataSource: DataSource,
     private readonly questionService: QuestionService,
+    private readonly rewardService: RewardService,
   ) {}
 
   /**
@@ -90,7 +96,7 @@ export class LetterService {
 
   /**
    * 휴게실: 같은 질문에 다른 사람이 쓴 공개 일지를 최신순으로 조회한다.
-   * 내 일지, 비공개 일지, 내가 차단한 사용자의 일지는 제외한다.
+   * 내 일지, 비공개 일지, 내가 차단한 사용자의 일지, 신고가 인정된(resolved) 일지, 탈퇴·비활성 사용자의 일지는 제외한다.
    */
   async findPublic(
     userId: string,
@@ -98,6 +104,9 @@ export class LetterService {
   ): Promise<GetPublicLetterResponseDto[]> {
     const letters = await this.letterRepository
       .createQueryBuilder('letter')
+      .innerJoin('letter.user', 'author', 'author.status = :activeStatus', {
+        activeStatus: UserStatus.ACTIVE,
+      })
       .where('letter.questionId = :questionId', {
         questionId: query.questionId,
       })
@@ -105,6 +114,10 @@ export class LetterService {
       .andWhere('letter.userId != :userId', { userId })
       .andWhere(
         'letter.userId NOT IN (SELECT ub.blocked_user_id FROM user_block ub WHERE ub.blocker_user_id = :userId)',
+      )
+      .andWhere(
+        'NOT EXISTS (SELECT 1 FROM letter_report lr WHERE lr.letter_id = letter.id AND lr.status = :resolvedStatus)',
+        { resolvedStatus: LetterReportStatus.RESOLVED },
       )
       .orderBy('letter.createdDate', 'DESC')
       .take(query.take ?? DEFAULT_LETTERS_TAKE)
@@ -146,12 +159,13 @@ export class LetterService {
     return letters.map((letter) => ({
       date: letter.letterDate,
       letterId: letter.id,
-      moodNumber: letter.moodNumber,
+      mood: letter.mood,
     }));
   }
 
   /**
    * 내 일지를 부분 수정한다. 본문(answer)은 작성 당일(KST)에만 고칠 수 있다.
+   * 공개 여부를 바꾸면 그 선택을 내 설정(set_letter_is_private(_sns))에도 저장해 다음 일지의 기본값으로 쓴다.
    */
   async update(
     userId: string,
@@ -174,10 +188,11 @@ export class LetterService {
       throw new AppException(ErrorCode.LETTER_EDIT_EXPIRED);
     }
     letter.answer = dto.answer ?? letter.answer;
-    letter.moodNumber = dto.moodNumber ?? letter.moodNumber;
+    letter.mood = dto.mood ?? letter.mood;
     letter.isPrivate = dto.isPrivate ?? letter.isPrivate;
     letter.isPrivateSns = dto.isPrivateSns ?? letter.isPrivateSns;
     const savedLetter = await this.letterRepository.save(letter);
+    await this.saveVisibilityAsDefault(userId, dto);
     return this.mapLetterToResponse(savedLetter);
   }
 
@@ -216,12 +231,8 @@ export class LetterService {
       throw new AppException(ErrorCode.DATE_IN_FUTURE);
     }
     return this.dataSource.transaction(async (manager: EntityManager) => {
-      const user = await manager.findOneBy(User, { id: userId });
-      if (!user) {
-        throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
-          userId: userId,
-        });
-      }
+      // 잠금이 먼저여야 동시 요청의 두 번째가 첫 요청의 일지·리워드를 본다
+      const user = await this.rewardService.lockUser(manager, userId);
       if (await manager.findOneBy(Letter, { userId, letterDate })) {
         throw AppException.withTarget(ErrorCode.LETTER_ALREADY_EXISTS, {
           letterDate,
@@ -232,30 +243,25 @@ export class LetterService {
         letterDate,
       );
       const isToday = letterDate === today;
-      if (!isToday && user.rewardCount < PAST_LETTER_COST) {
-        throw new AppException(
-          ErrorCode.REWARD_INSUFFICIENT,
-          { required: PAST_LETTER_COST, current: user.rewardCount },
-          undefined,
-          `리워드(꿈조각)가 부족합니다. (필요 ${PAST_LETTER_COST}개, 보유 ${user.rewardCount}개)`,
-        );
+      if (!isToday) {
+        this.rewardService.ensureSufficientBalance(user, PAST_LETTER_COST);
       }
       const isFirstLetter =
         (await manager.count(Letter, { where: { userId } })) === 0;
-
+      // 공개 여부는 작성 뒤에 묻는다. 묻기 전에는 내 설정(마지막 선택)을 따른다
+      const setting = await manager.findOneBy(UserSetting, { userId });
       const letter = await manager.save(Letter, {
         userId,
         questionId: question.id,
         letterDate,
         answer: dto.answer,
-        moodNumber: dto.moodNumber ?? null,
-        // 공개 여부는 작성 뒤에 묻는다. 묻기 전에 휴게실에 노출되지 않도록 기본은 비공개
-        isPrivate: dto.isPrivate ?? true,
-        isPrivateSns: dto.isPrivateSns ?? true,
+        mood: dto.mood ?? null,
+        isPrivate: dto.isPrivate ?? setting?.setLetterIsPrivate ?? true,
+        isPrivateSns:
+          dto.isPrivateSns ?? setting?.setLetterIsPrivateSns ?? true,
         localeType: dto.localeType ?? LocaleType.KO,
       });
-
-      const rewards = isToday
+      const rewards: RewardEntry[] = isToday
         ? [
             { type: RewardType.LETTER, amount: LETTER_REWARD_AMOUNT },
             ...((await this.isStreakRewardDue(manager, userId))
@@ -263,23 +269,36 @@ export class LetterService {
               : []),
           ]
         : [{ type: RewardType.PAST_LETTER, amount: -PAST_LETTER_COST }];
-      const rewardAmount = rewards.reduce(
-        (sum, reward) => sum + reward.amount,
-        0,
+      const rewardAmount = await this.rewardService.applyRewards(
+        manager,
+        user,
+        rewards,
       );
-      user.rewardCount += rewardAmount;
-      await manager.save(User, user);
-      await manager.save(
-        RewardHistory,
-        rewards.map((reward) => ({ userId, ...reward })),
-      );
-
       if (isFirstLetter) {
         await this.grantPendingInviteReward(manager, user);
       }
-
       return { ...this.mapLetterToResponse(letter), rewardAmount };
     });
+  }
+
+  private async saveVisibilityAsDefault(
+    userId: string,
+    dto: UpdateLetterRequestDto,
+  ): Promise<void> {
+    const patch: Partial<
+      Pick<UserSetting, 'setLetterIsPrivate' | 'setLetterIsPrivateSns'>
+    > = {
+      ...(dto.isPrivate !== undefined
+        ? { setLetterIsPrivate: dto.isPrivate }
+        : {}),
+      ...(dto.isPrivateSns !== undefined
+        ? { setLetterIsPrivateSns: dto.isPrivateSns }
+        : {}),
+    };
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
+    await this.dataSource.getRepository(UserSetting).update({ userId }, patch);
   }
 
   /**
@@ -327,29 +346,16 @@ export class LetterService {
       return;
     }
 
-    const inviter = await manager.findOneBy(User, {
-      id: pendingInvite.inviterUserId,
-    });
-    if (!inviter) {
-      return;
-    }
-
-    inviter.rewardCount += INVITE_REWARD_AMOUNT;
-    invitee.rewardCount += INVITE_REWARD_AMOUNT;
-    await manager.save(User, inviter);
-    await manager.save(User, invitee);
-    await manager.save(RewardHistory, [
-      {
-        userId: inviter.id,
-        type: RewardType.INVITE,
-        amount: INVITE_REWARD_AMOUNT,
-      },
-      {
-        userId: invitee.id,
-        type: RewardType.INVITE,
-        amount: INVITE_REWARD_AMOUNT,
-      },
-    ]);
+    // 초대한 사람 본인의 재화 요청과 겹쳐도 잔액이 유실되지 않도록 잠근다
+    const inviter = await this.rewardService.lockUser(
+      manager,
+      pendingInvite.inviterUserId,
+    );
+    const inviteReward: RewardEntry[] = [
+      { type: RewardType.INVITE, amount: INVITE_REWARD_AMOUNT },
+    ];
+    await this.rewardService.applyRewards(manager, inviter, inviteReward);
+    await this.rewardService.applyRewards(manager, invitee, inviteReward);
     pendingInvite.rewardGivenYn = true;
     await manager.save(UserInvite, pendingInvite);
   }
@@ -386,7 +392,7 @@ export class LetterService {
   ): Promise<GetAiReplyResponseDto> {
     const aiReply = await this.aiReplyRepository.findOneBy({
       id: aiReplyId,
-      userId,
+      letter: { userId },
     });
     if (!aiReply) {
       throw AppException.withTarget(ErrorCode.AI_REPLY_NOT_FOUND, {
@@ -409,25 +415,20 @@ export class LetterService {
     dto: CreateLetterReactionRequestDto,
   ): Promise<GetLetterReactionResponseDto> {
     const letter = await this.findVisibleLetter(letterId, userId);
-    const existing = await this.letterReactionRepository.findOneBy({
+    // 연타해도 409 없이 마지막 반응으로 덮어쓴다 (letter_id, user_id 유니크)
+    await this.letterReactionRepository.upsert(
+      { letterId: letter.id, userId, reactionType: dto.reactionType },
+      ['letterId', 'userId'],
+    );
+    const reaction = await this.letterReactionRepository.findOneByOrFail({
       letterId: letter.id,
       userId,
     });
-    if (existing) {
-      existing.reactionType = dto.reactionType;
-      const saved = await this.letterReactionRepository.save(existing);
-      return this.mapReactionToResponse(saved);
-    }
-    const created = await this.letterReactionRepository.save({
-      letterId: letter.id,
-      userId,
-      reactionType: dto.reactionType,
-    });
-    return this.mapReactionToResponse(created);
+    return this.mapReactionToResponse(reaction);
   }
 
   /**
-   * 편지를 신고한다. 본인 일지는 신고할 수 없다.
+   * 편지를 신고한다. 본인 일지는 신고할 수 없고, 같은 일지는 한 번만 신고할 수 있다.
    */
   async addReport(
     userId: string,
@@ -440,14 +441,22 @@ export class LetterService {
       throw new AppException(ErrorCode.LETTER_REPORT_OWN_LETTER);
     }
     const letter = await this.findVisibleLetter(letterId, userId);
-    const created = await this.letterReportRepository.save({
-      letterId: letter.id,
-      reporterUserId: userId,
-      reasonType: dto.reasonType,
-      reasonDetail: dto.reasonDetail ?? null,
-      status: LetterReportStatus.PENDING,
-    });
-    return this.mapReportToResponse(created);
+    try {
+      const created = await this.letterReportRepository.save({
+        letterId: letter.id,
+        reporterUserId: userId,
+        reasonType: dto.reasonType ?? null,
+        reasonDetail: dto.reasonDetail ?? null,
+        status: LetterReportStatus.PENDING,
+      });
+      return this.mapReportToResponse(created);
+    } catch (err) {
+      // 한 사람은 같은 일지를 한 번만 신고한다 (letter_id, reporter_user_id 유니크). 연타도 여기로 온다
+      if (isUniqueViolation(err)) {
+        throw new AppException(ErrorCode.LETTER_REPORT_ALREADY_EXISTS);
+      }
+      throw err;
+    }
   }
 
   /**
@@ -506,7 +515,7 @@ export class LetterService {
       questionId: letter.questionId,
       letterDate: letter.letterDate,
       answer: letter.answer,
-      moodNumber: letter.moodNumber,
+      mood: letter.mood,
       isPrivate: letter.isPrivate,
       isPrivateSns: letter.isPrivateSns,
       localeType: letter.localeType,

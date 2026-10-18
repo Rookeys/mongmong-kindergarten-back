@@ -7,6 +7,7 @@ import { User } from '../user/entities/user.entity';
 import { UserModule } from '../user/user.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { RefreshToken } from './entities/refresh-token.entity';
 import { JwtGuard } from './guard/jwt.guard';
 import { LocalGuard } from './guard/local.guard';
 import { RolesGuard } from './guard/roles.guard';
@@ -19,7 +20,7 @@ import { LocalStrategy } from './strategy/local.strategy';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, RefreshToken]),
     forwardRef(() => UserModule),
     PassportModule,
     JwtModule.register({}),

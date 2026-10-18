@@ -10,4 +10,6 @@ export enum RewardType {
   STREAK = 'streak',
   /** 지난 날짜 일지 작성에 사용 (amount가 음수) */
   PAST_LETTER = 'past_letter',
+  /** 아이템 구매에 사용 (amount가 음수) */
+  ITEM_PURCHASE = 'item_purchase',
 }
