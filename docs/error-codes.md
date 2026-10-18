@@ -55,21 +55,28 @@
 | `USER_NOT_FOUND` | 404 | 사용자를 찾을 수 없습니다. |
 | `EMAIL_ALREADY_EXISTS` | 409 | 이미 존재하는 이메일입니다. |
 | `INVITE_CODE_INVALID` | 400 | 유효하지 않은 친구 초대 코드입니다. |
+| `INVITE_ALREADY_REGISTERED` | 409 | 이미 친구 초대 코드를 등록했습니다. |
+| `INVITE_CODE_TOO_LATE` | 409 | 친구 초대 코드는 첫 일지를 쓰기 전에만 입력할 수 있습니다. |
 | `QUESTION_SERIES_NOT_FOUND` | 404 | 존재하지 않는 질문 시리즈입니다. |
 | `QUESTION_NOT_FOUND` | 404 | 해당 날짜의 질문을 찾을 수 없습니다. |
-| `DATE_IN_FUTURE` | 400 | 미래 날짜는 사용할 수 없습니다. |
 | `QUESTION_CONTENT_NOT_FOUND` | 404 | 질문 콘텐츠를 찾을 수 없습니다. |
+| `DATE_IN_FUTURE` | 400 | 미래 날짜는 사용할 수 없습니다. |
 | `LETTER_NOT_FOUND` | 404 | 일지를 찾을 수 없습니다. |
 | `LETTER_REPORT_OWN_LETTER` | 403 | 본인 일지는 신고할 수 없습니다. |
 | `LETTER_REPORT_NOT_FOUND` | 404 | 신고를 찾을 수 없습니다. |
+| `LETTER_REPORT_ALREADY_EXISTS` | 409 | 이미 신고한 일지입니다. |
 | `LETTER_ALREADY_EXISTS` | 409 | 해당 날짜에는 이미 일지를 작성했습니다. |
 | `LETTER_EDIT_EXPIRED` | 403 | 일지 내용은 작성한 당일에만 수정할 수 있습니다. |
 | `AI_REPLY_NOT_FOUND` | 404 | AI 답장을 찾을 수 없습니다. |
 | `ITEM_NOT_FOUND` | 404 | 아이템을 찾을 수 없습니다. |
+| `ITEM_NOT_ON_SALE` | 409 | 판매가 중지된 아이템입니다. |
 | `CHARACTER_ITEM_ALREADY_OWNED` | 409 | 이미 보유한 아이템입니다. |
 | `CHARACTER_ITEM_NOT_OWNED` | 404 | 보유한 아이템을 찾을 수 없습니다. |
 | `REWARD_INSUFFICIENT` | 400 | 리워드(꿈조각)가 부족합니다. |
 | `CHARACTER_NOT_FOUND` | 404 | 졸업 가능한 캐릭터를 찾을 수 없습니다. |
+| `CHARACTER_GRADUATION_NOT_READY` | 409 | 아직 졸업할 수 없습니다. |
+| `CHARACTER_TYPE_NOT_FOUND` | 404 | 캐릭터 종류를 찾을 수 없습니다. |
+| `CHARACTER_TYPE_NOT_REGISTERED` | 500 | 배정할 캐릭터 종류가 등록되어 있지 않습니다. |
 | `ATTENDANCE_ALREADY_CHECKED` | 409 | 오늘은 이미 출석체크를 했습니다. |
 | `NOTICE_NOT_FOUND` | 404 | 공지를 찾을 수 없습니다. |
 
@@ -89,7 +96,7 @@
 
 ### 동시 요청(연타·재시도) 시 응답
 - 같은 요청이 겹쳐 들어와도 서버가 한 번만 처리한다. 먼저 처리된 요청이 성공하고, 나머지는 그 결과를 본 에러를 받는다.
-  - `POST /letters` 같은 날짜 → `LETTER_ALREADY_EXISTS`, `POST /rewards/attendance` → `ATTENDANCE_ALREADY_CHECKED`, `POST /character-items` 같은 아이템 → `CHARACTER_ITEM_ALREADY_OWNED`, `POST /characters/graduate` → `CHARACTER_NOT_FOUND`
+  - `POST /letters` 같은 날짜 → `LETTER_ALREADY_EXISTS`, `POST /rewards/attendance` → `ATTENDANCE_ALREADY_CHECKED`, `POST /character-items` 같은 아이템 → `CHARACTER_ITEM_ALREADY_OWNED`, `POST /characters/graduate` → `CHARACTER_NOT_FOUND`, `POST /letters/:id/reports` → `LETTER_REPORT_ALREADY_EXISTS`, `PATCH /auth/me` 초대 코드 → `INVITE_ALREADY_REGISTERED`
   - `POST /letters/:id/reactions`, `POST /auth/kakao`, `GET /characters/me`는 겹쳐도 모두 성공한다.
 - `POST /auth/refresh`는 같은 Refresh Token으로 동시에 보내면 하나만 성공한다. 갱신 요청은 한 번만 보내고 다른 요청은 그 결과를 기다리게 한다.
 - `DUPLICATE_RESOURCE`(409)는 위에서 다루지 못한 DB 중복이 났을 때의 공통 코드다.
@@ -101,7 +108,7 @@
 `VALIDATION_FAILED`(400), `EMAIL_ALREADY_EXISTS`(409), `INVITE_CODE_INVALID`(400)
 
 ### POST /auth/kakao
-`VALIDATION_FAILED`(400), `KAKAO_TOKEN_INVALID`(401), `KAKAO_PROFILE_UNAVAILABLE`(401), `KAKAO_UPSTREAM_ERROR`(502)
+`VALIDATION_FAILED`(400), `KAKAO_TOKEN_INVALID`(401), `KAKAO_PROFILE_UNAVAILABLE`(401), `KAKAO_UPSTREAM_ERROR`(502), `AUTH_ACCOUNT_INACTIVE`(403)
 
 ### POST /auth/refresh
 `VALIDATION_FAILED`(400), `AUTH_REFRESH_TOKEN_INVALID`(401), `AUTH_ACCOUNT_INACTIVE`(403), `USER_NOT_FOUND`(404)
@@ -113,7 +120,7 @@
 `USER_NOT_FOUND`(404)
 
 ### PATCH /auth/me
-`VALIDATION_FAILED`(400), `USER_NOT_FOUND`(404), `QUESTION_SERIES_NOT_FOUND`(404)
+`VALIDATION_FAILED`(400), `USER_NOT_FOUND`(404), `QUESTION_SERIES_NOT_FOUND`(404), `INVITE_CODE_INVALID`(400), `INVITE_ALREADY_REGISTERED`(409), `INVITE_CODE_TOO_LATE`(409)
 
 ### DELETE /auth/me
 `USER_NOT_FOUND`(404)
@@ -128,16 +135,25 @@
 -
 
 ### POST /character-items
-`VALIDATION_FAILED`(400), `ITEM_NOT_FOUND`(404), `CHARACTER_ITEM_ALREADY_OWNED`(409), `REWARD_INSUFFICIENT`(400), `USER_NOT_FOUND`(404)
+`VALIDATION_FAILED`(400), `ITEM_NOT_FOUND`(404), `ITEM_NOT_ON_SALE`(409), `CHARACTER_ITEM_ALREADY_OWNED`(409), `REWARD_INSUFFICIENT`(400), `USER_NOT_FOUND`(404)
 
 ### PATCH /character-items/:id
 `VALIDATION_FAILED`(400), `CHARACTER_ITEM_NOT_OWNED`(404), `USER_NOT_FOUND`(404)
 
 ### GET /characters/me
--
+`CHARACTER_TYPE_NOT_REGISTERED`(500, 캐릭터 종류가 하나도 등록되지 않은 서버 설정 오류)
 
 ### POST /characters/graduate
-`CHARACTER_NOT_FOUND`(404)
+`CHARACTER_NOT_FOUND`(404), `CHARACTER_GRADUATION_NOT_READY`(409, details `{graduationDate}`), `CHARACTER_TYPE_NOT_REGISTERED`(500)
+
+### GET /character-types (관리자)
+`FORBIDDEN_ROLE`(403)
+
+### POST /character-types (관리자)
+`VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403), `DUPLICATE_RESOURCE`(409, 같은 이름)
+
+### PATCH /character-types/:id (관리자)
+`VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403), `CHARACTER_TYPE_NOT_FOUND`(404), `DUPLICATE_RESOURCE`(409)
 
 ### GET /characters/graduation-cards
 -
@@ -151,8 +167,8 @@
 ### PATCH /items/:id
 `VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403), `ITEM_NOT_FOUND`(404)
 
-### DELETE /items/:id
-`VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403), `ITEM_NOT_FOUND`(404), `RESOURCE_IN_USE`(409)
+### DELETE /items/:id (판매 중지)
+`VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403), `ITEM_NOT_FOUND`(404)
 
 ### PATCH /ai-replies/:id/read
 `VALIDATION_FAILED`(400), `AI_REPLY_NOT_FOUND`(404)
@@ -182,7 +198,7 @@
 `VALIDATION_FAILED`(400), `LETTER_NOT_FOUND`(404)
 
 ### POST /letters/:id/reports
-`VALIDATION_FAILED`(400), `LETTER_REPORT_OWN_LETTER`(403), `LETTER_NOT_FOUND`(404)
+`VALIDATION_FAILED`(400), `LETTER_REPORT_OWN_LETTER`(403), `LETTER_NOT_FOUND`(404), `LETTER_REPORT_ALREADY_EXISTS`(409)
 
 ### GET /letter-reports (관리자)
 `VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403)
@@ -207,6 +223,12 @@
 
 ### GET /questions/series
 -
+
+### POST /questions/series (관리자)
+`VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403)
+
+### PUT /questions/series/:id/questions (관리자)
+`VALIDATION_FAILED`(400), `FORBIDDEN_ROLE`(403), `QUESTION_SERIES_NOT_FOUND`(404)
 
 ### GET /questions/guest/today (인증 불필요)
 `VALIDATION_FAILED`(400), `QUESTION_SERIES_NOT_FOUND`(404), `QUESTION_NOT_FOUND`(404), `QUESTION_CONTENT_NOT_FOUND`(404)

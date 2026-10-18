@@ -16,6 +16,7 @@
 > - 4장 `characters.use_yn` 제거, 본인 탈퇴 `DELETE /auth/me`·로그아웃 `POST /auth/logout` 추가
 > - 5-3 인덱스, 5-4 `user.friend_invite_code` 제거, 5-5 `user.email` nullable, 5-6 `ai_reply.user_id` 제거, 5-8 아이템 구매도 `reward_history`에 음수로 기록, 5-10 일시 컬럼 `timestamptz`
 > - 6-5 리프레시 토큰: `POST /auth/refresh` 추가
+> - 기분 6종, 꾸미기 탭(옷/얼굴/배경), 캐릭터 종류(몽몽이·햄몽이·빼몽이), 1년 사이클 졸업, 편지 수 레벨, 졸업 카드 필드, 초대 코드 입력, 신고 사유 선택 등은 `decisions-2026-10-18.md`에서 결정·반영
 
 ---
 

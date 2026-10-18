@@ -41,6 +41,7 @@
 - 꿈조각 지급/차감은 `RewardService.applyRewards`로만 한다. 잔액(`user.reward_count`)을 바꾸고 같은 트랜잭션에서 `reward_history`에 이력을 남긴다(차감은 음수). 그래서 이력 합계와 잔액이 항상 맞는다.
 - 보상 금액은 `reward-amount.constants.ts` 상수로 분리.
 - 질문은 달력 날짜에 고정된다(시리즈당 `order_num` 1~365, 1월 1일 = 1). 일지는 `letter_date`(KST 날짜)로 질문을 정하고 사용자당 날짜별 1통이다.
+- 캐릭터는 `cycle_start_date`부터 1년이 한 사이클이다. 레벨은 저장하지 않고 그 사이클에 쓴 편지 수(`letter_date` 기준)로 매번 계산한다(90통마다 +1, 최대 4). 저장한 값과 실제 편지 수가 어긋날 일이 없고, 지난 날짜 일지도 날짜가 속한 사이클에 들어간다. 졸업할 때 레벨·편지 수·가장 많이 보낸 기분을 졸업 카드에 스냅샷으로 남긴다.
 
 ## 6. 환경 설정
 
@@ -81,12 +82,13 @@
 
 ## 10. 삭제 규칙 (FK `onDelete`)
 
-지금은 사용자 삭제가 소프트 삭제(`status = deleted`)라 실제로 행이 지워지는 경우는 관리자 아이템·공지 삭제뿐이다. 하드 삭제 API를 추가할 때는 아래 연쇄를 확인한다.
+지금은 사용자 삭제가 소프트 삭제(`status = deleted`, 이메일·카카오 연결은 비워 재가입 허용)이고, 아이템은 판매 중지, 캐릭터 종류는 사용 중지로 처리해 실제로 행이 지워지는 경우는 관리자 공지 삭제뿐이다. 하드 삭제 API를 추가할 때는 아래 연쇄를 확인한다.
 
 | 지우는 행 | 함께 지워지는 행 (CASCADE) | 막는 행 (RESTRICT) / 기타 |
 |---|---|---|
 | `user` | `letter`(→ `ai_reply`, `letter_reaction`, `letter_report`), `characters`(→ `character_item_map`, `graduation_card`), `reward_history`, `ad_view_log`, `user_setting`, `user_device`, `user_invite`, `user_block`, `refresh_token`, 그 사용자가 남긴 `letter_reaction`·`letter_report` | |
-| `item` | 그 아이템을 산 기록 `character_item_map` (꿈조각 환불 없음) | |
+| `item` | | 산 기록 `character_item_map`이 있으면 실패(409 `RESOURCE_IN_USE`). 아이템은 지우지 않고 판매 중지한다 |
+| `character_type` | | 그 종류의 `characters`가 있으면 실패(409 `RESOURCE_IN_USE`). 지우지 않고 `is_active = false`로 바꾼다 |
 | `question_series` | `question`(→ `question_content`) | `question`을 참조하는 `letter`가 있으면 실패(409 `RESOURCE_IN_USE`) |
 | `question` | `question_content` | `letter`가 참조하면 실패(409 `RESOURCE_IN_USE`) |
 | `letter` | `ai_reply`, `letter_reaction`, `letter_report` | |
