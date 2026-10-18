@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { QueryFailedError } from 'typeorm';
+import { PG_UNIQUE_VIOLATION } from './utils/is-unique-violation.util';
 import { AppException } from './app-exception';
 import { ERROR_META, ErrorCode } from './error-code';
 
@@ -22,7 +23,6 @@ const STATUS_CODE: Partial<Record<number, ErrorCode>> = {
 };
 
 // PostgreSQL 에러 코드
-const PG_UNIQUE_VIOLATION = '23505';
 const PG_FOREIGN_KEY_VIOLATION = '23503';
 
 interface ErrorBody {

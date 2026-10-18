@@ -258,7 +258,11 @@ export class LetterController {
    * 편지 신고
    */
   @Post(':id/reports')
-  @ApiOperation({ summary: '편지 신고' })
+  @ApiOperation({
+    summary: '편지 신고',
+    description:
+      '사유(reasonType)는 선택이다. 같은 일지는 한 번만 신고할 수 있다.',
+  })
   @ApiParam({ name: 'id', description: '편지 ID', example: '1' })
   @ApiBody({ type: CreateLetterReportRequestDto })
   @ApiCreatedResponse({
@@ -272,6 +276,7 @@ export class LetterController {
     ErrorCode.AUTH_TOKEN_INVALID,
     ErrorCode.LETTER_REPORT_OWN_LETTER,
     ErrorCode.LETTER_NOT_FOUND,
+    ErrorCode.LETTER_REPORT_ALREADY_EXISTS,
   )
   async addReport(
     @Req() request: JwtAuthRequest,

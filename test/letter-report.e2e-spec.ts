@@ -1,4 +1,5 @@
 import { TestingModule } from '@nestjs/testing';
+import { ErrorCode } from '../src/common/error-code';
 import { LetterReportReasonType } from '../src/modules/letter/enums/letter-report-reason-type.enum';
 import { LetterReportStatus } from '../src/modules/letter/enums/letter-report-status.enum';
 import { LetterReportService } from '../src/modules/letter/letter-report.service';
@@ -57,5 +58,33 @@ describe('신고 처리', () => {
         status: LetterReportStatus.RESOLVED,
       }),
     ).toEqual([expect.objectContaining({ id: report.id })]);
+  });
+
+  it('사유 없이 신고할 수 있고, 같은 일지를 다시(동시에) 신고하면 한 번만 접수된다', async () => {
+    const letterService = moduleRef.get(LetterService);
+    const writer = await createUser(moduleRef);
+    const reporter = await createUser(moduleRef);
+    const letter = await letterService.create(writer.id, {
+      answer: '두 번 신고될 일지',
+      isPrivate: false,
+    });
+
+    const results = await Promise.allSettled([
+      letterService.addReport(reporter.id, letter.id, {}),
+      letterService.addReport(reporter.id, letter.id, {}),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toEqual([
+      expect.objectContaining({
+        value: expect.objectContaining({ reasonType: null }),
+      }),
+    ]);
+    expect(results.filter((result) => result.status === 'rejected')).toEqual([
+      expect.objectContaining({
+        reason: expect.objectContaining({
+          code: ErrorCode.LETTER_REPORT_ALREADY_EXISTS,
+        }),
+      }),
+    ]);
   });
 });

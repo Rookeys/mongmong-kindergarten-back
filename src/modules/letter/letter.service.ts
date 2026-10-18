@@ -11,6 +11,7 @@ import {
   MoreThanOrEqual,
   Repository,
 } from 'typeorm';
+import { isUniqueViolation } from '../../common/utils/is-unique-violation.util';
 import { toKstDateString } from '../../common/utils/to-kst-date-string.util';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import {
@@ -423,7 +424,7 @@ export class LetterService {
   }
 
   /**
-   * 편지를 신고한다. 본인 일지는 신고할 수 없다.
+   * 편지를 신고한다. 본인 일지는 신고할 수 없고, 같은 일지는 한 번만 신고할 수 있다.
    */
   async addReport(
     userId: string,
@@ -436,14 +437,22 @@ export class LetterService {
       throw new AppException(ErrorCode.LETTER_REPORT_OWN_LETTER);
     }
     const letter = await this.findVisibleLetter(letterId, userId);
-    const created = await this.letterReportRepository.save({
-      letterId: letter.id,
-      reporterUserId: userId,
-      reasonType: dto.reasonType,
-      reasonDetail: dto.reasonDetail ?? null,
-      status: LetterReportStatus.PENDING,
-    });
-    return this.mapReportToResponse(created);
+    try {
+      const created = await this.letterReportRepository.save({
+        letterId: letter.id,
+        reporterUserId: userId,
+        reasonType: dto.reasonType ?? null,
+        reasonDetail: dto.reasonDetail ?? null,
+        status: LetterReportStatus.PENDING,
+      });
+      return this.mapReportToResponse(created);
+    } catch (err) {
+      // 한 사람은 같은 일지를 한 번만 신고한다 (letter_id, reporter_user_id 유니크). 연타도 여기로 온다
+      if (isUniqueViolation(err)) {
+        throw new AppException(ErrorCode.LETTER_REPORT_ALREADY_EXISTS);
+      }
+      throw err;
+    }
   }
 
   /**

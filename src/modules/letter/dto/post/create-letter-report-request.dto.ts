@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { LetterReportReasonType } from '../../enums/letter-report-reason-type.enum';
 
@@ -6,14 +6,15 @@ import { LetterReportReasonType } from '../../enums/letter-report-reason-type.en
  * 편지 신고 요청 DTO
  */
 export class CreateLetterReportRequestDto {
-  @ApiProperty({
-    description: '신고 사유',
+  @ApiPropertyOptional({
+    description: '신고 사유 (선택)',
     enum: LetterReportReasonType,
     enumName: 'LetterReportReasonType',
     example: LetterReportReasonType.INAPPROPRIATE,
   })
+  @IsOptional()
   @IsEnum(LetterReportReasonType)
-  reasonType!: LetterReportReasonType;
+  reasonType?: LetterReportReasonType;
 
   @ApiPropertyOptional({
     description: '신고 상세 사유',

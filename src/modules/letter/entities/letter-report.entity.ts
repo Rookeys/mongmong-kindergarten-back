@@ -7,6 +7,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { LetterReportReasonType } from '../enums/letter-report-reason-type.enum';
 import { LetterReportStatus } from '../enums/letter-report-status.enum';
@@ -17,6 +18,8 @@ import { Letter } from './letter.entity';
  */
 @Entity('letter_report')
 @Index(['letterId'])
+// 한 사람은 같은 일지를 한 번만 신고한다
+@Unique(['letterId', 'reporterUserId'])
 export class LetterReport {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'letter_report_id' })
   id!: string;
@@ -39,8 +42,8 @@ export class LetterReport {
   @JoinColumn({ name: 'reporter_user_id' })
   reporterUser!: User;
 
-  @Column({ name: 'reason_type', type: 'varchar', length: 30 })
-  reasonType!: LetterReportReasonType;
+  @Column({ name: 'reason_type', type: 'varchar', length: 30, nullable: true })
+  reasonType!: LetterReportReasonType | null;
 
   @Column({
     name: 'reason_detail',
