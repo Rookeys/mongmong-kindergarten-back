@@ -1,8 +1,10 @@
 import { TestingModule } from '@nestjs/testing';
+import { DataSource } from 'typeorm';
 import { ErrorCode } from '../src/common/error-code';
 import { LocaleType } from '../src/common/enums/locale-type.enum';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { KakaoAuthService } from '../src/modules/auth/services/kakao-auth.service';
+import { UserInvite } from '../src/modules/user/entities/user-invite.entity';
 import { UserStatus } from '../src/modules/user/enums/user-status.enum';
 import { UserService } from '../src/modules/user/user.service';
 import { createTestModule, createUser } from './support/create-test-module';
@@ -142,5 +144,24 @@ describe('인증 토큰과 내 계정', () => {
 
     expect(response.user.id).not.toBe(localUser.id);
     expect(response.user.email).toBeNull();
+  });
+
+  it('온보딩에서 초대 코드를 등록하면 첫 일지 때 보상 대기 상태가 되고, 두 번은 못 한다', async () => {
+    const inviter = await createUser(moduleRef);
+    const invitee = await createUser(moduleRef);
+
+    await userService.registerInviteCode(invitee.id, inviter.myInviteCode);
+
+    await expect(
+      userService.registerInviteCode(invitee.id, inviter.myInviteCode),
+    ).rejects.toMatchObject({ code: ErrorCode.INVITE_ALREADY_REGISTERED });
+    await expect(
+      userService.registerInviteCode(inviter.id, inviter.myInviteCode),
+    ).rejects.toMatchObject({ code: ErrorCode.INVITE_CODE_INVALID });
+    expect(
+      await moduleRef.get(DataSource).getRepository(UserInvite).findOneBy({
+        inviteeUserId: invitee.id,
+      }),
+    ).toMatchObject({ inviterUserId: inviter.id, rewardGivenYn: false });
   });
 });

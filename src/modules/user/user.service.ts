@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/app-exception';
 import { ErrorCode } from '../../common/error-code';
 import { assignDefined } from '../../common/utils/assign-defined.util';
+import { isUniqueViolation } from '../../common/utils/is-unique-violation.util';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import { BCRYPT_SALT_ROUNDS } from '../auth/constants/password.constants';
+import { Letter } from '../letter/entities/letter.entity';
 import { QuestionSeries } from '../question/entities/question-series.entity';
 import {
   CreateUserRequestDto,
@@ -164,6 +166,46 @@ export class UserService {
   }
 
   /**
+   * 친구 초대 코드를 등록한다(온보딩, 선택). 보상은 첫 일지를 쓸 때 초대한 사람·받은 사람 모두에게 지급된다.
+   * 본인 코드, 이미 등록한 경우, 이미 일지를 쓴 경우에는 등록할 수 없다.
+   */
+  async registerInviteCode(
+    userId: string,
+    friendInviteCode: string,
+  ): Promise<void> {
+    const user = await this.findById(userId);
+    const inviter = (await this.findInviterByCode(
+      this.dataSource.manager,
+      friendInviteCode,
+    )) as User;
+    if (inviter.id === user.id) {
+      throw new AppException(
+        ErrorCode.INVITE_CODE_INVALID,
+        { friendInviteCode },
+        undefined,
+        '본인 초대 코드는 입력할 수 없습니다.',
+      );
+    }
+    if (await this.dataSource.getRepository(Letter).existsBy({ userId })) {
+      throw new AppException(ErrorCode.INVITE_CODE_TOO_LATE);
+    }
+    try {
+      await this.dataSource.getRepository(UserInvite).insert({
+        inviterUserId: inviter.id,
+        inviteeUserId: user.id,
+        inviteCode: inviter.myInviteCode,
+        rewardGivenYn: false,
+      });
+    } catch (err) {
+      // user_invite(invitee_user_id) 유니크: 초대 코드는 한 번만 등록한다
+      if (isUniqueViolation(err)) {
+        throw new AppException(ErrorCode.INVITE_ALREADY_REGISTERED);
+      }
+      throw err;
+    }
+  }
+
+  /**
    * 내 설정을 조회한다.
    */
   async findSetting(userId: string): Promise<GetUserSettingResponseDto> {
@@ -245,6 +287,7 @@ export class UserService {
     }
     const inviter = await manager.findOneBy(User, {
       myInviteCode: friendInviteCode,
+      status: UserStatus.ACTIVE,
     });
     if (!inviter) {
       throw new AppException(

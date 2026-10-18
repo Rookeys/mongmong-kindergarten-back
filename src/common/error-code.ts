@@ -36,6 +36,8 @@ export enum ErrorCode {
   USER_NOT_FOUND = 'USER_NOT_FOUND',
   EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS',
   INVITE_CODE_INVALID = 'INVITE_CODE_INVALID',
+  INVITE_ALREADY_REGISTERED = 'INVITE_ALREADY_REGISTERED',
+  INVITE_CODE_TOO_LATE = 'INVITE_CODE_TOO_LATE',
 
   // 질문
   QUESTION_SERIES_NOT_FOUND = 'QUESTION_SERIES_NOT_FOUND',
@@ -181,6 +183,14 @@ export const ERROR_META: Record<
     message: '유효하지 않은 친구 초대 코드입니다.',
   },
 
+  [ErrorCode.INVITE_ALREADY_REGISTERED]: {
+    status: HttpStatus.CONFLICT,
+    message: '이미 친구 초대 코드를 등록했습니다.',
+  },
+  [ErrorCode.INVITE_CODE_TOO_LATE]: {
+    status: HttpStatus.CONFLICT,
+    message: '친구 초대 코드는 첫 일지를 쓰기 전에만 입력할 수 있습니다.',
+  },
   [ErrorCode.QUESTION_SERIES_NOT_FOUND]: {
     status: HttpStatus.NOT_FOUND,
     message: '존재하지 않는 질문 시리즈입니다.',

@@ -1,4 +1,5 @@
 import { TestingModule } from '@nestjs/testing';
+import { ErrorCode } from '../src/common/error-code';
 import { toKstDateString } from '../src/common/utils/to-kst-date-string.util';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { LetterService } from '../src/modules/letter/letter.service';
@@ -64,5 +65,19 @@ describe('일지 공개 여부와 내 설정', () => {
     });
 
     expect(publicLetters.map((item) => item.id)).not.toContain(letter.id);
+  });
+
+  it('일지를 이미 쓴 뒤에는 초대 코드를 등록할 수 없다', async () => {
+    const inviter = await createUser(moduleRef);
+    const invitee = await createUser(moduleRef);
+    await moduleRef
+      .get(LetterService)
+      .create(invitee.id, { answer: '먼저 쓴 일지' });
+
+    await expect(
+      moduleRef
+        .get(UserService)
+        .registerInviteCode(invitee.id, inviter.myInviteCode),
+    ).rejects.toMatchObject({ code: ErrorCode.INVITE_CODE_TOO_LATE });
   });
 });

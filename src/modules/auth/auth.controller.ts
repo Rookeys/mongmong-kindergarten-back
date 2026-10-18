@@ -197,7 +197,11 @@ export class AuthController {
   @Patch('me')
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '내 프로필 수정' })
+  @ApiOperation({
+    summary: '내 프로필 수정',
+    description:
+      '보낸 필드만 바꾼다. 온보딩에서 닉네임과 친구 초대 코드(선택)를 함께 보낼 수 있다. 초대 코드가 잘못되면 아무것도 바꾸지 않는다.',
+  })
   @ApiBody({ type: UpdateMeRequestDto })
   @ApiOkResponse({ description: '수정 성공', type: GetUserResponseDto })
   @ApiErrors(
@@ -207,12 +211,22 @@ export class AuthController {
     ErrorCode.AUTH_TOKEN_INVALID,
     ErrorCode.USER_NOT_FOUND,
     ErrorCode.QUESTION_SERIES_NOT_FOUND,
+    ErrorCode.INVITE_CODE_INVALID,
+    ErrorCode.INVITE_ALREADY_REGISTERED,
+    ErrorCode.INVITE_CODE_TOO_LATE,
   )
   async updateMe(
     @Req() request: JwtAuthRequest,
     @Body() dto: UpdateMeRequestDto,
   ): Promise<GetUserResponseDto> {
-    return this.userService.update(request.user.sub, dto);
+    const { friendInviteCode, ...profile } = dto;
+    if (friendInviteCode) {
+      await this.userService.registerInviteCode(
+        request.user.sub,
+        friendInviteCode,
+      );
+    }
+    return this.userService.update(request.user.sub, profile);
   }
 
   /**
