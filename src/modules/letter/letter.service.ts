@@ -22,6 +22,8 @@ import {
 } from '../reward/constants/reward-amount.constants';
 import { RewardHistory } from '../reward/entities/reward-history.entity';
 import { RewardType } from '../reward/enums/reward-type.enum';
+import { RewardService } from '../reward/reward.service';
+import { RewardEntry } from '../reward/types/reward-entry.type';
 import { QuestionService } from '../question/question.service';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
@@ -66,6 +68,7 @@ export class LetterService {
     private readonly letterReportRepository: Repository<LetterReport>,
     private readonly dataSource: DataSource,
     private readonly questionService: QuestionService,
+    private readonly rewardService: RewardService,
   ) {}
 
   /**
@@ -216,12 +219,8 @@ export class LetterService {
       throw new AppException(ErrorCode.DATE_IN_FUTURE);
     }
     return this.dataSource.transaction(async (manager: EntityManager) => {
-      const user = await manager.findOneBy(User, { id: userId });
-      if (!user) {
-        throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
-          userId: userId,
-        });
-      }
+      // 잠금이 먼저여야 동시 요청의 두 번째가 첫 요청의 일지·리워드를 본다
+      const user = await this.rewardService.lockUser(manager, userId);
       if (await manager.findOneBy(Letter, { userId, letterDate })) {
         throw AppException.withTarget(ErrorCode.LETTER_ALREADY_EXISTS, {
           letterDate,
@@ -232,17 +231,11 @@ export class LetterService {
         letterDate,
       );
       const isToday = letterDate === today;
-      if (!isToday && user.rewardCount < PAST_LETTER_COST) {
-        throw new AppException(
-          ErrorCode.REWARD_INSUFFICIENT,
-          { required: PAST_LETTER_COST, current: user.rewardCount },
-          undefined,
-          `리워드(꿈조각)가 부족합니다. (필요 ${PAST_LETTER_COST}개, 보유 ${user.rewardCount}개)`,
-        );
+      if (!isToday) {
+        this.rewardService.ensureSufficientBalance(user, PAST_LETTER_COST);
       }
       const isFirstLetter =
         (await manager.count(Letter, { where: { userId } })) === 0;
-
       const letter = await manager.save(Letter, {
         userId,
         questionId: question.id,
@@ -254,8 +247,7 @@ export class LetterService {
         isPrivateSns: dto.isPrivateSns ?? true,
         localeType: dto.localeType ?? LocaleType.KO,
       });
-
-      const rewards = isToday
+      const rewards: RewardEntry[] = isToday
         ? [
             { type: RewardType.LETTER, amount: LETTER_REWARD_AMOUNT },
             ...((await this.isStreakRewardDue(manager, userId))
@@ -263,21 +255,14 @@ export class LetterService {
               : []),
           ]
         : [{ type: RewardType.PAST_LETTER, amount: -PAST_LETTER_COST }];
-      const rewardAmount = rewards.reduce(
-        (sum, reward) => sum + reward.amount,
-        0,
+      const rewardAmount = await this.rewardService.applyRewards(
+        manager,
+        user,
+        rewards,
       );
-      user.rewardCount += rewardAmount;
-      await manager.save(User, user);
-      await manager.save(
-        RewardHistory,
-        rewards.map((reward) => ({ userId, ...reward })),
-      );
-
       if (isFirstLetter) {
         await this.grantPendingInviteReward(manager, user);
       }
-
       return { ...this.mapLetterToResponse(letter), rewardAmount };
     });
   }
@@ -327,29 +312,16 @@ export class LetterService {
       return;
     }
 
-    const inviter = await manager.findOneBy(User, {
-      id: pendingInvite.inviterUserId,
-    });
-    if (!inviter) {
-      return;
-    }
-
-    inviter.rewardCount += INVITE_REWARD_AMOUNT;
-    invitee.rewardCount += INVITE_REWARD_AMOUNT;
-    await manager.save(User, inviter);
-    await manager.save(User, invitee);
-    await manager.save(RewardHistory, [
-      {
-        userId: inviter.id,
-        type: RewardType.INVITE,
-        amount: INVITE_REWARD_AMOUNT,
-      },
-      {
-        userId: invitee.id,
-        type: RewardType.INVITE,
-        amount: INVITE_REWARD_AMOUNT,
-      },
-    ]);
+    // 초대한 사람 본인의 재화 요청과 겹쳐도 잔액이 유실되지 않도록 잠근다
+    const inviter = await this.rewardService.lockUser(
+      manager,
+      pendingInvite.inviterUserId,
+    );
+    const inviteReward: RewardEntry[] = [
+      { type: RewardType.INVITE, amount: INVITE_REWARD_AMOUNT },
+    ];
+    await this.rewardService.applyRewards(manager, inviter, inviteReward);
+    await this.rewardService.applyRewards(manager, invitee, inviteReward);
     pendingInvite.rewardGivenYn = true;
     await manager.save(UserInvite, pendingInvite);
   }
@@ -409,21 +381,16 @@ export class LetterService {
     dto: CreateLetterReactionRequestDto,
   ): Promise<GetLetterReactionResponseDto> {
     const letter = await this.findVisibleLetter(letterId, userId);
-    const existing = await this.letterReactionRepository.findOneBy({
+    // 연타해도 409 없이 마지막 반응으로 덮어쓴다 (letter_id, user_id 유니크)
+    await this.letterReactionRepository.upsert(
+      { letterId: letter.id, userId, reactionType: dto.reactionType },
+      ['letterId', 'userId'],
+    );
+    const reaction = await this.letterReactionRepository.findOneByOrFail({
       letterId: letter.id,
       userId,
     });
-    if (existing) {
-      existing.reactionType = dto.reactionType;
-      const saved = await this.letterReactionRepository.save(existing);
-      return this.mapReactionToResponse(saved);
-    }
-    const created = await this.letterReactionRepository.save({
-      letterId: letter.id,
-      userId,
-      reactionType: dto.reactionType,
-    });
-    return this.mapReactionToResponse(created);
+    return this.mapReactionToResponse(reaction);
   }
 
   /**

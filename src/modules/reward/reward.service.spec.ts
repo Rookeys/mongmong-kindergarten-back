@@ -22,7 +22,10 @@ function createManagerMock(state: {
   const savedRewardHistories: Partial<RewardHistory>[] = [];
 
   const manager = {
-    findOne: (entity: unknown) => {
+    findOne: (entity: unknown, options: { where: Record<string, unknown> }) => {
+      if (entity === User) {
+        return options.where.id === state.user.id ? state.user : null;
+      }
       if (entity === RewardHistory) {
         return state.hasAttendedToday ? { id: 'h1' } : null;
       }
@@ -43,7 +46,8 @@ function createManagerMock(state: {
         return payload;
       }
       if (entity === RewardHistory) {
-        savedRewardHistories.push(payload as Partial<RewardHistory>);
+        const rows = Array.isArray(payload) ? payload : [payload];
+        savedRewardHistories.push(...(rows as Partial<RewardHistory>[]));
         return payload;
       }
       throw new Error(`unexpected save entity: ${String(entity)}`);

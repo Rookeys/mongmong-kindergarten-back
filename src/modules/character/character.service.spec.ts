@@ -2,6 +2,9 @@ import { ErrorCode } from '../../common/error-code';
 import { DataSource } from 'typeorm';
 import { Item } from '../item/entities/item.entity';
 import { ItemType } from '../item/enums/item-type.enum';
+import { RewardHistory } from '../reward/entities/reward-history.entity';
+import { RewardType } from '../reward/enums/reward-type.enum';
+import { RewardService } from '../reward/reward.service';
 import { User } from '../user/entities/user.entity';
 import { CharacterService } from './character.service';
 import { Character } from './entities/character.entity';
@@ -20,6 +23,7 @@ class FakeManager {
   items = new Map<string, Item>();
   users = new Map<string, User>();
   graduationCards = new Map<string, GraduationCard>();
+  rewardHistories = new Map<string, RewardHistory>();
 
   private storeFor(entity: unknown): Map<string, unknown> {
     if (entity === Character) return this.characters;
@@ -27,6 +31,7 @@ class FakeManager {
     if (entity === Item) return this.items;
     if (entity === User) return this.users;
     if (entity === GraduationCard) return this.graduationCards;
+    if (entity === RewardHistory) return this.rewardHistories;
     throw new Error(`unexpected entity: ${String(entity)}`);
   }
 
@@ -80,7 +85,52 @@ class FakeManager {
     return rows;
   };
 
-  save = (entity: unknown, payload: Record<string, unknown>) => {
+  findOneByOrFail = (entity: unknown, where: Record<string, unknown>) => {
+    const row = this.findOneBy(entity, where);
+    if (!row) {
+      throw new Error('not found');
+    }
+    return row;
+  };
+
+  /** 조건에 맞는 행만 바꾸고 바뀐 행 수를 돌려준다 */
+  update = (
+    entity: unknown,
+    where: Record<string, unknown>,
+    patch: Record<string, unknown>,
+  ) => {
+    const rows = this.find(entity, { where });
+    rows.forEach((row) => Object.assign(row, patch));
+    return { affected: rows.length };
+  };
+
+  /** insert().into(Character).values(v).orIgnore(): 진행 중 캐릭터가 이미 있으면 무시 */
+  createQueryBuilder = () => ({
+    insert: () => ({
+      into: (entity: unknown) => ({
+        values: (payload: Record<string, unknown>) => ({
+          orIgnore: () => ({
+            execute: () => {
+              const hasGrowing = this.findOneBy(entity, {
+                userId: payload.userId,
+                status: CharacterStatus.GROWING,
+              });
+              if (!hasGrowing) {
+                this.save(entity, payload);
+              }
+            },
+          }),
+        }),
+      }),
+    }),
+  });
+
+  save = (entity: unknown, payload: Record<string, unknown> | unknown[]) => {
+    if (Array.isArray(payload)) {
+      return payload.map((row) =>
+        this.save(entity, row as Record<string, unknown>),
+      );
+    }
     const store = this.storeFor(entity);
     const id = (payload.id as string) ?? `id-${this.nextId++}`;
     const existing = (store.get(id) as Record<string, unknown>) ?? {};
@@ -115,13 +165,14 @@ class FakeManager {
 
 function buildService(manager: FakeManager) {
   const dataSource = {
+    manager,
     transaction: (cb: (manager: FakeManager) => unknown) => cb(manager),
   } as unknown as DataSource;
   return new CharacterService(
-    manager.getRepository(Character) as never,
     manager.getRepository(CharacterItemMap) as never,
     manager.getRepository(GraduationCard) as never,
     dataSource,
+    new RewardService({} as never, dataSource),
   );
 }
 
@@ -184,6 +235,13 @@ describe('CharacterService.purchaseItem', () => {
     expect(result.itemId).toBe(item.id);
     expect(result.isEquipped).toBe(false);
     expect((manager.users.get('u1') as User).rewardCount).toBe(70);
+    expect(Array.from(manager.rewardHistories.values())).toContainEqual(
+      expect.objectContaining({
+        userId: 'u1',
+        type: RewardType.ITEM_PURCHASE,
+        amount: -30,
+      }),
+    );
   });
 
   it('리워드가 부족하면 BadRequestException을 던지고 차감하지 않는다', async () => {
@@ -218,6 +276,7 @@ describe('CharacterService.purchaseItem', () => {
 describe('CharacterService.updateEquip', () => {
   it('같은 유형 아이템을 장착하면 기존 장착 아이템은 자동 해제된다', async () => {
     const manager = new FakeManager();
+    seedUser(manager, { id: 'u1' });
     const character = manager.save(Character, {
       userId: 'u1',
       level: 1,

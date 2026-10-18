@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -18,6 +19,8 @@ import { GraduationCard } from './graduation-card.entity';
  * 테이블명은 SQL 예약어 충돌을 피해 characters 사용
  */
 @Entity('characters')
+// 진행 중(GROWING) 캐릭터는 사용자당 1개
+@Index(['userId'], { unique: true, where: `status = 'growing'` })
 export class Character {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'character_id' })
   id!: string;

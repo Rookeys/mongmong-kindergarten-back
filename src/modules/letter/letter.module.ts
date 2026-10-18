@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { QuestionModule } from '../question/question.module';
-import { RewardHistory } from '../reward/entities/reward-history.entity';
+import { RewardModule } from '../reward/reward.module';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
 import { AiReply } from './entities/ai-reply.entity';
@@ -25,10 +25,10 @@ import { LetterService } from './letter.service';
       LetterReport,
       User,
       UserInvite,
-      RewardHistory,
     ]),
     AuthModule,
     QuestionModule,
+    RewardModule,
   ],
   controllers: [LetterController, AiReplyController],
   providers: [LetterService],

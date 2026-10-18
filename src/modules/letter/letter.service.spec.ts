@@ -10,6 +10,7 @@ import {
 } from '../reward/constants/reward-amount.constants';
 import { RewardHistory } from '../reward/entities/reward-history.entity';
 import { RewardType } from '../reward/enums/reward-type.enum';
+import { RewardService } from '../reward/reward.service';
 import { User } from '../user/entities/user.entity';
 import { UserInvite } from '../user/entities/user-invite.entity';
 import { Letter } from './entities/letter.entity';
@@ -61,12 +62,17 @@ function createManagerMock(state: {
       }
       throw new Error(`unexpected findOneBy entity: ${String(entity)}`);
     }),
-    findOne: jest.fn((entity: unknown) => {
-      if (entity === RewardHistory) {
-        return state.hasRecentStreakReward ? { id: 'streak' } : null;
-      }
-      throw new Error(`unexpected findOne entity: ${String(entity)}`);
-    }),
+    findOne: jest.fn(
+      (entity: unknown, options: { where: Record<string, unknown> }) => {
+        if (entity === User) {
+          return state.users.get(options.where.id as string) ?? null;
+        }
+        if (entity === RewardHistory) {
+          return state.hasRecentStreakReward ? { id: 'streak' } : null;
+        }
+        throw new Error(`unexpected findOne entity: ${String(entity)}`);
+      },
+    ),
     count: jest.fn(
       (entity: unknown, options: { where: Record<string, unknown> }) => {
         if (entity === Letter) {
@@ -121,6 +127,7 @@ function buildService(managerMock: ReturnType<typeof createManagerMock>) {
     emptyRepository,
     dataSource,
     questionService,
+    new RewardService(emptyRepository, dataSource),
   );
 }
 

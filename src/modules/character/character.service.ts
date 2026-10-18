@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/app-exception';
 import { ErrorCode } from '../../common/error-code';
+import { toKstDateString } from '../../common/utils/to-kst-date-string.util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Item } from '../item/entities/item.entity';
-import { User } from '../user/entities/user.entity';
+import { RewardType } from '../reward/enums/reward-type.enum';
+import { RewardService } from '../reward/reward.service';
 import {
   CreateCharacterItemRequestDto,
   GetCharacterItemResponseDto,
@@ -20,19 +22,29 @@ import { CharacterStatus } from './enums/character-status.enum';
 const INITIAL_LEVEL = 1;
 const INITIAL_EXPERIENCE = 0;
 
+type NewCharacter = Pick<
+  Character,
+  | 'userId'
+  | 'level'
+  | 'experience'
+  | 'useYn'
+  | 'status'
+  | 'graduatedAt'
+  | 'lastWateredAt'
+>;
+
 /**
  * 캐릭터/아이템 서비스
  */
 @Injectable()
 export class CharacterService {
   constructor(
-    @InjectRepository(Character)
-    private readonly characterRepository: Repository<Character>,
     @InjectRepository(CharacterItemMap)
     private readonly characterItemMapRepository: Repository<CharacterItemMap>,
     @InjectRepository(GraduationCard)
     private readonly graduationCardRepository: Repository<GraduationCard>,
     private readonly dataSource: DataSource,
+    private readonly rewardService: RewardService,
   ) {}
 
   /**
@@ -40,7 +52,7 @@ export class CharacterService {
    */
   async findOrCreateMine(userId: string): Promise<GetCharacterResponseDto> {
     const character = await this.getOrCreateActiveCharacter(
-      this.characterRepository,
+      this.dataSource.manager,
       userId,
     );
     return this.mapCharacterToResponse(character);
@@ -51,7 +63,7 @@ export class CharacterService {
    */
   async findMyItems(userId: string): Promise<GetCharacterItemResponseDto[]> {
     const character = await this.getOrCreateActiveCharacter(
-      this.characterRepository,
+      this.dataSource.manager,
       userId,
     );
     const itemMaps = await this.characterItemMapRepository.find({
@@ -71,8 +83,10 @@ export class CharacterService {
   ): Promise<GetCharacterItemResponseDto> {
     const savedItemMap = await this.dataSource.transaction(
       async (manager: EntityManager) => {
+        // 잠금이 먼저여야 동시 구매가 같은 잔액을 읽지 않는다
+        const user = await this.rewardService.lockUser(manager, userId);
         const character = await this.getOrCreateActiveCharacter(
-          manager.getRepository(Character),
+          manager,
           userId,
         );
         const item = await manager.findOneBy(Item, { id: dto.itemId });
@@ -81,7 +95,6 @@ export class CharacterService {
             itemId: dto.itemId,
           });
         }
-
         const alreadyOwned = await manager.findOneBy(CharacterItemMap, {
           characterId: character.id,
           itemId: item.id,
@@ -94,25 +107,10 @@ export class CharacterService {
             `이미 보유한 아이템입니다. (${item.name})`,
           );
         }
-
-        const user = await manager.findOneBy(User, { id: userId });
-        if (!user) {
-          throw AppException.withTarget(ErrorCode.USER_NOT_FOUND, {
-            userId: userId,
-          });
-        }
-        if (user.rewardCount < item.cost) {
-          throw new AppException(
-            ErrorCode.REWARD_INSUFFICIENT,
-            { required: item.cost, current: user.rewardCount },
-            undefined,
-            `리워드(꿈조각)가 부족합니다. (필요 ${item.cost}개, 보유 ${user.rewardCount}개)`,
-          );
-        }
-
-        user.rewardCount -= item.cost;
-        await manager.save(User, user);
-
+        this.rewardService.ensureSufficientBalance(user, item.cost);
+        await this.rewardService.applyRewards(manager, user, [
+          { type: RewardType.ITEM_PURCHASE, amount: -item.cost },
+        ]);
         return manager.save(CharacterItemMap, {
           characterId: character.id,
           itemId: item.id,
@@ -137,8 +135,10 @@ export class CharacterService {
   ): Promise<GetCharacterItemResponseDto> {
     const savedItemMap = await this.dataSource.transaction(
       async (manager: EntityManager) => {
+        // 같은 유형 아이템 두 개를 동시에 장착해도 하나만 남도록 사용자 단위로 순서를 맞춘다
+        await this.rewardService.lockUser(manager, userId);
         const character = await this.getOrCreateActiveCharacter(
-          manager.getRepository(Character),
+          manager,
           userId,
         );
         const target = await manager.findOne(CharacterItemMap, {
@@ -189,9 +189,15 @@ export class CharacterService {
         });
 
         const graduatedAt = new Date();
-        character.status = CharacterStatus.GRADUATED;
-        character.graduatedAt = graduatedAt;
-        await manager.save(Character, character);
+        // 동시 졸업 요청은 먼저 커밋된 쪽만 상태를 바꾸고, 나머지는 대상이 없어 실패한다
+        const { affected } = await manager.update(
+          Character,
+          { id: character.id, status: CharacterStatus.GROWING },
+          { status: CharacterStatus.GRADUATED, graduatedAt },
+        );
+        if (!affected) {
+          throw new AppException(ErrorCode.CHARACTER_NOT_FOUND);
+        }
 
         const card = await manager.save(GraduationCard, {
           userId,
@@ -207,19 +213,11 @@ export class CharacterService {
             })),
           },
           cardImageUrl: null,
-          periodStart: character.createdDate.toISOString().slice(0, 10),
-          periodEnd: graduatedAt.toISOString().slice(0, 10),
+          periodStart: toKstDateString(character.createdDate),
+          periodEnd: toKstDateString(graduatedAt),
         });
 
-        await manager.save(Character, {
-          userId,
-          level: INITIAL_LEVEL,
-          experience: INITIAL_EXPERIENCE,
-          useYn: true,
-          status: CharacterStatus.GROWING,
-          graduatedAt: null,
-          lastWateredAt: null,
-        });
+        await manager.save(Character, this.buildNewCharacter(userId));
 
         return card;
       },
@@ -241,17 +239,32 @@ export class CharacterService {
   }
 
   private async getOrCreateActiveCharacter(
-    repository: Repository<Character>,
+    manager: EntityManager,
     userId: string,
   ): Promise<Character> {
-    const existing = await repository.findOneBy({
+    const existing = await manager.findOneBy(Character, {
       userId,
       status: CharacterStatus.GROWING,
     });
     if (existing) {
       return existing;
     }
-    return repository.save({
+    // 동시 요청이 먼저 만들었으면 부분 유니크 인덱스에 걸려 무시되고, 그 캐릭터를 다시 읽는다
+    await manager
+      .createQueryBuilder()
+      .insert()
+      .into(Character)
+      .values(this.buildNewCharacter(userId))
+      .orIgnore()
+      .execute();
+    return manager.findOneByOrFail(Character, {
+      userId,
+      status: CharacterStatus.GROWING,
+    });
+  }
+
+  private buildNewCharacter(userId: string): NewCharacter {
+    return {
       userId,
       level: INITIAL_LEVEL,
       experience: INITIAL_EXPERIENCE,
@@ -259,7 +272,7 @@ export class CharacterService {
       status: CharacterStatus.GROWING,
       graduatedAt: null,
       lastWateredAt: null,
-    });
+    };
   }
 
   private async unequipSameType(

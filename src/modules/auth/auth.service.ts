@@ -113,14 +113,27 @@ export class AuthService {
     kakaoUserProfile: KakaoUserProfile,
   ): Promise<User> {
     const providerId = String(kakaoUserProfile.id);
-    const existingUser = await this.userRepository.findOneBy({
-      loginType: LoginType.KAKAO,
-      providerId,
-    });
+    const existingUser = await this.findKakaoUser(providerId);
     if (existingUser) {
       return this.updateKakaoUserProfile(existingUser, kakaoUserProfile);
     }
-    return this.createKakaoUser(kakaoUserProfile, providerId);
+    try {
+      return await this.createKakaoUser(kakaoUserProfile, providerId);
+    } catch (err) {
+      // 같은 계정의 첫 로그인이 동시에 들어오면 먼저 가입된 사용자로 로그인한다
+      const concurrentUser = await this.findKakaoUser(providerId);
+      if (concurrentUser) {
+        return concurrentUser;
+      }
+      throw err;
+    }
+  }
+
+  private async findKakaoUser(providerId: string): Promise<User | null> {
+    return this.userRepository.findOneBy({
+      loginType: LoginType.KAKAO,
+      providerId,
+    });
   }
 
   private async createKakaoUser(

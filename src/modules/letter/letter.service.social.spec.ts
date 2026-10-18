@@ -6,12 +6,20 @@ import { LetterService } from './letter.service';
 
 type RepoMock = {
   findOneBy: jest.Mock;
+  findOneByOrFail: jest.Mock;
   save: jest.Mock;
   find: jest.Mock;
+  upsert: jest.Mock;
 };
 
 function createRepoMock(): RepoMock {
-  return { findOneBy: jest.fn(), save: jest.fn(), find: jest.fn() };
+  return {
+    findOneBy: jest.fn(),
+    findOneByOrFail: jest.fn(),
+    save: jest.fn(),
+    find: jest.fn(),
+    upsert: jest.fn(),
+  };
 }
 
 function buildService(repos: {
@@ -27,11 +35,12 @@ function buildService(repos: {
     (repos.report ?? createRepoMock()) as never,
     {} as never,
     {} as never,
+    {} as never,
   );
 }
 
 describe('LetterService.addReaction', () => {
-  it('비공개가 아닌 타인의 편지에 처음 반응하면 새로 생성한다', async () => {
+  it('비공개가 아닌 타인의 편지에 반응하면 (편지, 사용자) 기준으로 upsert한다', async () => {
     const letterRepo = createRepoMock();
     const reactionRepo = createRepoMock();
     letterRepo.findOneBy.mockResolvedValue({
@@ -39,44 +48,13 @@ describe('LetterService.addReaction', () => {
       userId: 'owner',
       isPrivate: false,
     });
-    reactionRepo.findOneBy.mockResolvedValue(null);
-    reactionRepo.save.mockImplementation((payload) => ({
-      id: 'r1',
-      createdDate: new Date(),
-      ...payload,
-    }));
-    const service = buildService({
-      letter: letterRepo,
-      reaction: reactionRepo,
-    });
-
-    const result = await service.addReaction('viewer', 'l1', {
-      reactionType: LetterReactionType.LIKE,
-    });
-
-    expect(result.reactionType).toBe(LetterReactionType.LIKE);
-    expect(reactionRepo.save).toHaveBeenCalledWith(
-      expect.objectContaining({ letterId: 'l1', userId: 'viewer' }),
-    );
-  });
-
-  it('이미 반응한 경우 새로 만들지 않고 반응 유형을 갱신한다', async () => {
-    const letterRepo = createRepoMock();
-    const reactionRepo = createRepoMock();
-    letterRepo.findOneBy.mockResolvedValue({
-      id: 'l1',
-      userId: 'owner',
-      isPrivate: false,
-    });
-    const existing = {
+    reactionRepo.findOneByOrFail.mockResolvedValue({
       id: 'r1',
       letterId: 'l1',
       userId: 'viewer',
-      reactionType: LetterReactionType.LIKE,
+      reactionType: LetterReactionType.CHEER,
       createdDate: new Date(),
-    };
-    reactionRepo.findOneBy.mockResolvedValue(existing);
-    reactionRepo.save.mockImplementation((payload) => payload);
+    });
     const service = buildService({
       letter: letterRepo,
       reaction: reactionRepo,
@@ -87,12 +65,13 @@ describe('LetterService.addReaction', () => {
     });
 
     expect(result.reactionType).toBe(LetterReactionType.CHEER);
-    expect(reactionRepo.save).toHaveBeenCalledTimes(1);
-    expect(reactionRepo.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'r1',
+    expect(reactionRepo.upsert).toHaveBeenCalledWith(
+      {
+        letterId: 'l1',
+        userId: 'viewer',
         reactionType: LetterReactionType.CHEER,
-      }),
+      },
+      ['letterId', 'userId'],
     );
   });
 

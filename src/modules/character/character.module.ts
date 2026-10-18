@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { Item } from '../item/entities/item.entity';
-import { User } from '../user/entities/user.entity';
+import { RewardModule } from '../reward/reward.module';
 import { CharacterItemController } from './character-item.controller';
 import { CharacterController } from './character.controller';
 import { CharacterService } from './character.service';
@@ -20,9 +20,9 @@ import { GraduationCard } from './entities/graduation-card.entity';
       GraduationCard,
       CharacterItemMap,
       Item,
-      User,
     ]),
     AuthModule,
+    RewardModule,
   ],
   controllers: [CharacterController, CharacterItemController],
   providers: [CharacterService],

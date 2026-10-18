@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { Character } from './character.entity';
 
@@ -13,6 +14,7 @@ import { Character } from './character.entity';
  * 졸업 카드 엔티티 (GRADUATION_CARD)
  */
 @Entity('graduation_card')
+@Unique(['characterId'])
 export class GraduationCard {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'graduation_card_id' })
   id!: string;
