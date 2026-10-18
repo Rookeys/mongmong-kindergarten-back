@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/app-exception';
 import { ErrorCode } from '../../common/error-code';
+import { assignDefined } from '../../common/utils/assign-defined.util';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -176,7 +177,7 @@ export class UserService {
     dto: UpdateUserSettingRequestDto,
   ): Promise<GetUserSettingResponseDto> {
     const setting = await this.findSettingEntity(userId);
-    Object.assign(setting, dto);
+    assignDefined(setting, dto);
     const savedSetting = await this.userSettingRepository.save(setting);
     return this.mapSettingToResponse(savedSetting);
   }

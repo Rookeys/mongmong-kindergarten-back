@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/app-exception';
 import { ErrorCode } from '../../common/error-code';
+import { assignDefined } from '../../common/utils/assign-defined.util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserRole } from '../user/enums/user-role.enum';
@@ -79,7 +80,7 @@ export class NoticeService {
     dto: UpdateNoticeRequestDto,
   ): Promise<GetNoticeResponseDto> {
     const notice = await this.findById(noticeId);
-    Object.assign(notice, dto);
+    assignDefined(notice, dto);
     const savedNotice = await this.noticeRepository.save(notice);
     return this.mapNoticeToResponse(savedNotice);
   }
