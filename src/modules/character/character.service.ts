@@ -35,7 +35,6 @@ import { GraduationCard } from './entities/graduation-card.entity';
 import { CharacterStatus } from './enums/character-status.enum';
 import { addYearsToDateString } from './utils/add-years-to-date-string.util';
 import { toLevel } from './utils/to-level.util';
-import { toNextCycleStartDate } from './utils/to-next-cycle-start-date.util';
 
 type NewCharacter = Pick<
   Character,
@@ -244,11 +243,7 @@ export class CharacterService {
         );
         await manager.save(
           Character,
-          await this.buildNewCharacter(
-            manager,
-            userId,
-            toNextCycleStartDate(character.cycleStartDate, today),
-          ),
+          await this.buildNewCharacter(manager, userId, today),
         );
         return card;
       },
