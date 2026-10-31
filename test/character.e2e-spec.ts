@@ -135,7 +135,7 @@ describe('캐릭터 (종류·레벨·졸업·꾸미기)', () => {
     });
   });
 
-  it('1년이 지나면 졸업 카드에 이름·편지 수·가장 많이 보낸 기분이 남고, 새 캐릭터는 오늘이 속한 사이클에서 시작한다', async () => {
+  it('1년이 지나면 졸업 카드에 이름·편지 수·가장 많이 보낸 기분이 남고, 새 캐릭터는 졸업한 날부터 시작한다', async () => {
     const user = await createUser(moduleRef);
     const before = await characterService.findOrCreateMine(user.id);
     const cycleStartDate = addYearsToDateString(toDateBefore(10), -1);
@@ -163,7 +163,7 @@ describe('캐릭터 (종류·레벨·졸업·꾸미기)', () => {
       periodEnd: toDateBefore(11),
     });
     expect(after.id).not.toBe(before.id);
-    expect(after.cycleStartDate).toBe(toDateBefore(10));
+    expect(after.cycleStartDate).toBe(TODAY);
   });
 
   it('판매 중지된 아이템은 살 수 없고, 같은 유형을 장착하면 기존 장착은 풀린다', async () => {
