@@ -8,7 +8,7 @@ import { UserStatus } from '../../enums/user-status.enum';
  */
 export class UpdateUserRequestDto {
   @ApiPropertyOptional({
-    description: '닉네임 (2~8자, 한글·영문 소문자·숫자)',
+    description: '닉네임 (2~8자, 한글·일본어·영문 소문자·숫자)',
     example: '새닉네임',
     minLength: 2,
     maxLength: 8,

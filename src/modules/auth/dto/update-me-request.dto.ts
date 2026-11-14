@@ -8,7 +8,7 @@ import { NICKNAME_PATTERN } from '../../user/constants/nickname.constants';
  */
 export class UpdateMeRequestDto {
   @ApiPropertyOptional({
-    description: '닉네임 (2~8자, 한글·영문 소문자·숫자)',
+    description: '닉네임 (2~8자, 한글·일본어·영문 소문자·숫자)',
     example: '진주',
     minLength: 2,
     maxLength: 8,
