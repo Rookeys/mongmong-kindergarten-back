@@ -3,7 +3,6 @@ import { ErrorCode } from '../src/common/error-code';
 import { LocaleType } from '../src/common/enums/locale-type.enum';
 import { QuestionAdminService } from '../src/modules/question/question-admin.service';
 import { QuestionService } from '../src/modules/question/question.service';
-import { toQuestionOrderNum } from '../src/modules/question/utils/to-question-order-num.util';
 import { createTestModule, createUser } from './support/create-test-module';
 
 describe('질문 등록 (관리자)', () => {
@@ -23,13 +22,13 @@ describe('질문 등록 (관리자)', () => {
 
     await adminService.upsertQuestions(series.id, [
       {
-        orderNum: toQuestionOrderNum('2026-01-01'),
+        orderNum: 1, // 1월 1일
         contents: [{ localeType: LocaleType.KO, content: '처음 문구' }],
       },
     ]);
     const result = await adminService.upsertQuestions(series.id, [
       {
-        orderNum: toQuestionOrderNum('2026-01-01'),
+        orderNum: 1, // 1월 1일
         contents: [
           { localeType: LocaleType.KO, content: '고친 문구' },
           { localeType: LocaleType.EN, content: 'Edited' },

@@ -119,10 +119,15 @@ export class QuestionService {
     questionSeriesId: string | null,
     date: string,
   ): Promise<Question> {
+    const orderNum = toQuestionOrderNum(date);
+    // 2월 29일은 질문이 없는 날이다
+    if (orderNum === null) {
+      throw AppException.withTarget(ErrorCode.QUESTION_NOT_FOUND, { date });
+    }
     const question = await this.questionRepository.findOne({
       where: {
         questionSeriesId: await this.resolveSeriesId(questionSeriesId),
-        orderNum: toQuestionOrderNum(date),
+        orderNum,
       },
       relations: ['contents'],
     });

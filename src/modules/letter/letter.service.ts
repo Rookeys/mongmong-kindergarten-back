@@ -4,15 +4,16 @@ import { ErrorCode } from '../../common/error-code';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   And,
-  Between,
   DataSource,
   EntityManager,
+  In,
   LessThan,
   MoreThanOrEqual,
   Repository,
 } from 'typeorm';
 import { isUniqueViolation } from '../../common/utils/is-unique-violation.util';
 import { toKstDateString } from '../../common/utils/to-kst-date-string.util';
+import { getPreviousLetterDates } from './utils/previous-letter-dates.util';
 import { LocaleType } from '../../common/enums/locale-type.enum';
 import {
   INVITE_REWARD_AMOUNT,
@@ -53,7 +54,6 @@ import { LetterReport } from './entities/letter-report.entity';
 import { LetterReportStatus } from './enums/letter-report-status.enum';
 
 const DEFAULT_LETTERS_TAKE = 20;
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
  * 일지(편지) 서비스
@@ -304,20 +304,20 @@ export class LetterService {
   /**
    * 오늘 일지로 연속 작성 보상을 받을 차례인지 확인한다.
    * 직전 (STREAK_DAYS - 1)일을 모두 썼고, 그 기간에 이미 받은 연속 보상이 없어야 한다.
+   * 2월 29일은 질문이 없는 날이라 연속 계산에서 하루 무시한다.
    * (5일마다 반복 지급. 오늘 일지는 저장된 뒤에 호출된다)
    */
   private async isStreakRewardDue(
     manager: EntityManager,
     userId: string,
   ): Promise<boolean> {
-    const toDateBefore = (days: number): string =>
-      toKstDateString(new Date(Date.now() - days * MS_PER_DAY));
-    const streakStartDate = toDateBefore(STREAK_DAYS - 1);
+    const previousDates = getPreviousLetterDates(
+      toKstDateString(),
+      STREAK_DAYS - 1,
+    );
+    const streakStartDate = previousDates[previousDates.length - 1];
     const previousLetterCount = await manager.count(Letter, {
-      where: {
-        userId,
-        letterDate: Between(streakStartDate, toDateBefore(1)),
-      },
+      where: { userId, letterDate: In(previousDates) },
     });
     if (previousLetterCount < STREAK_DAYS - 1) {
       return false;
