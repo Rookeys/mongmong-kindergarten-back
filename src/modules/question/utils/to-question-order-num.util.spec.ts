@@ -13,9 +13,7 @@ describe('toQuestionOrderNum', () => {
     expect(toQuestionOrderNum('2028-12-31')).toBe(365);
   });
 
-  it('2월 29일은 2월 28일과 같은 번호다', () => {
-    expect(toQuestionOrderNum('2028-02-29')).toBe(
-      toQuestionOrderNum('2028-02-28'),
-    );
+  it('2월 29일은 질문이 없다 (null)', () => {
+    expect(toQuestionOrderNum('2028-02-29')).toBeNull();
   });
 });

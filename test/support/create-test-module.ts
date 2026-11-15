@@ -104,9 +104,12 @@ export async function seedQuestions(moduleRef: TestingModule): Promise<void> {
     toKstDateString(new Date(Date.now() - days * MS_PER_DAY)),
   );
   for (const date of dates) {
+    const orderNum = toQuestionOrderNum(date);
+    // 2월 29일은 질문이 없는 날이라 만들지 않는다
+    if (orderNum === null) continue;
     const question = await dataSource.getRepository(Question).save({
       questionSeriesId: series.id,
-      orderNum: toQuestionOrderNum(date),
+      orderNum,
     });
     await dataSource.getRepository(QuestionContent).save({
       questionId: question.id,

@@ -58,7 +58,7 @@
 | `INVITE_ALREADY_REGISTERED` | 409 | 이미 친구 초대 코드를 등록했습니다. |
 | `INVITE_CODE_TOO_LATE` | 409 | 친구 초대 코드는 첫 일지를 쓰기 전에만 입력할 수 있습니다. |
 | `QUESTION_SERIES_NOT_FOUND` | 404 | 존재하지 않는 질문 시리즈입니다. |
-| `QUESTION_NOT_FOUND` | 404 | 해당 날짜의 질문을 찾을 수 없습니다. |
+| `QUESTION_NOT_FOUND` | 404 | 해당 날짜의 질문을 찾을 수 없습니다. 2월 29일은 질문이 없는 날이라 항상 이 에러다. |
 | `QUESTION_CONTENT_NOT_FOUND` | 404 | 질문 콘텐츠를 찾을 수 없습니다. |
 | `DATE_IN_FUTURE` | 400 | 미래 날짜는 사용할 수 없습니다. |
 | `LETTER_NOT_FOUND` | 404 | 일지를 찾을 수 없습니다. |
